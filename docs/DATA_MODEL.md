@@ -1,0 +1,66 @@
+# Vibress LMS — logical data model and migration policy
+
+**Status: PROPOSED.** SQL below illustrates invariants, not an applied Drizzle schema/migration. Host-owned migration/data service must be implemented and approved first.
+
+## 1. Storage ownership decision
+
+Use plugin-owned tables/schema (e.g. `vibress_lms`) in the same PostgreSQL instance initially, provisioned through a secure host-managed migration lifecycle. No direct imports of Vibress core Drizzle types or cross-domain internal queries. The LMS application accesses data through its own typed adapters with **publication-bound scope supplied by the host**.
+
+Content Modeler is appropriate for selected public editorial catalog fields only, via supported public APIs; it must not store or expose learner records, quiz answers, protected content or gradebook in public Collections.
+
+## 2. Tables (minimum design)
+
+| Table | Key and essential columns | Constraints and purpose |
+| --- | --- | --- |
+| `lms_courses` | `id, publication_id, slug, status, title, description, locale, created_at, updated_at` | UNIQUE(publication_id, slug); draft/published/archived; title localization requires approved policy |
+| `lms_sections` | `id, publication_id, course_id, position, title` | FK(publication_id, course_id); deterministic order |
+| `lms_lessons` | `id, publication_id, course_id, section_id, position, status, content_ref, media_ref` | Composite FK into course/section; protected references; draft/published |
+| `lms_enrollments` | `id, publication_id, course_id, member_id, status, source, enrolled_at, revoked_at` | UNIQUE(publication_id, course_id, member_id); bounded status transitions |
+| `lms_lesson_progress` | `id, publication_id, enrollment_id, lesson_id, completed_at, updated_at` | UNIQUE(publication_id, enrollment_id, lesson_id); consistent transaction |
+| `lms_idempotency_keys` | `publication_id, scope, actor_id, operation, key, response_hash, expires_at` | Dedup enroll/complete/quiz events; no raw bearer tokens |
+| `lms_audit_events` | `id, publication_id, actor_kind, actor_id, action, target_id, occurred_at, request_id` | Redacted immutable history, retention schedule |
+| `lms_outbox_events` | `id, publication_id, event_type, payload, published_at` | Durable event delivery; retries and dedup |
+
+Pro additions: `lms_quizzes`, `lms_questions`, `lms_quiz_attempts`, `lms_attempt_answers`, `lms_certificates`, `lms_course_entitlements`, `lms_instructor_assignments`. These are **not** part of spike/migration 0001 unless a concrete accepted use case requires them.
+
+### Example composite isolation invariant
+
+```sql
+-- Conceptual only: SQL must be generated from approved schema and reviewed.
+UNIQUE (publication_id, id) -- parent course
+FOREIGN KEY (publication_id, course_id)
+  REFERENCES vibress_lms.lms_courses (publication_id, id);
+UNIQUE (publication_id, course_id, member_id) -- enrollment
+```
+
+If core Members permits a composite FK keyed by (publication_id,id), use it to guarantee same-publication membership; otherwise validate authoritatively via host Members service and enforce through transaction/constraint design. Do not assume core Member schema has an index not explicitly verified.
+
+## 3. Transactional rules
+
+- Course publish only when required published sections/lessons pass validation; publish metadata must not expose protected lesson body.
+- Enrollment is insert-or-existing with idempotency key and database uniqueness; all requests recheck publication/course/member status.
+- Progress completion checks active owned enrollment and valid lesson in same course; safe to retry. Never accept caller `memberId` as ownership proof.
+- Updating course curriculum must define progress counting against curriculum revision; avoid silently lowering/staging completed counts for learners.
+- Quizzes later: immutable submitted attempt snapshots (question version, correct answer policy, grade version), server timestamps, safe regrade/audit.
+- Events/jobs emitted from durable outbox **after** transaction commit; no double enrollment on webhook duplication.
+
+## 4. Migrations and release compatibility
+
+1. Plugin release includes immutable namespaced migrations, manifest migration head and checksums.
+2. Install preflight validates host SDK, DB minimum version, permissions, backup and expected migration ledger.
+3. Add new nullable fields/indexes first; backfill in restart-safe batches; constrain only after verification. Bound table locks and large-table index creation.
+4. Migration runner records applied versions per plugin and installation; concurrent worker protection with advisory lock or approved equivalent.
+5. Upgrade code only once data is compatible; no destructive down migration automatically. Preserve snapshots and forward recovery plan.
+6. Disable/uninstall keep data/settings, enrollment and certificate history intact. Purge is separate authenticated audited action with export.
+7. Test a fresh database, a non-empty older dataset, partial failure/retry, duplicate migration, and restore with matching pinned package.
+
+## 5. Privacy, retention, exports and indexing
+
+- Treat Member IDs, enrollment/progress, quiz responses and certificate records as personal data; minimize and scope internal logs, analytics and events.
+- Public course indexes include only publication-approved metadata; no lesson secrets or student records.
+- Private lesson media refer to protected object IDs; storage signed URLs must expire and be bound to verified authorization. Cache `private/no-store` where appropriate.
+- Create retention/export/delete jobs that respect legal obligations, education records and audit requirements; coordinate Member deletion with LMS records and referential integrity.
+- Backups include plugin schema, job/outbox ledgers, media and encryption keys. Restore must reconcile pending jobs to avoid duplicate side effects.
+- Index all publication-scoped queries appropriately: e.g. (publication_id, course_id), (publication_id, member_id, status), (publication_id, enrollment_id, lesson_id); performance verify before final migration.
+
+Related [architecture](ARCHITECTURE.md), [security](SECURITY_OPERATIONS.md), [test strategy](TEST_RELEASE.md).
