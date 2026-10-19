@@ -35,6 +35,8 @@ Never treat public course metadata, enrollment status or a client-reported payme
 
 ### Protected media and exam material
 
+The canonical lesson stores no locale-specific body/media. Each `lms_lesson_translations` row owns its private `body_ref` and `media_ref`, keyed by publication, course, lesson and locale. Shared assets must be explicitly linked to that lesson with matching compound keys. Resolve only published/authorized translations through host-scoped storage after Member/entitlement checks. Language fallback does not convert protected media into public assets.
+
 Private storage, no public CDN master URL in HTML/metadata/logs; grant short-lived signed URLs after server authorization and limit allowable paths and MIME. Signed URLs reduce casual exposure but are **not DRM**; use streaming provider controls if stronger protection is required. Questions/correct answers kept server-side until policy permits review; no leaked answer keys through SSR hydration or browser source maps.
 
 ### Rendering and plugin trust
@@ -45,7 +47,8 @@ Sanitize rich HTML and localized content; forbid arbitrary scripts in lesson doc
 
 | Event | Behavior |
 | --- | --- |
-| LMS process/handler fault | Core continues; API returns stable error with request ID |
+| Ordinary caught LMS handler rejection | Host may fail that request closed with a stable error/request ID and retain core service only while runtime stays healthy |
+| Unbounded/fatal in-process LMS code (OOM, event-loop stall, process exit, native crash) | **Core survival not guaranteed**; operator restarts/recovers. Strong failure isolation requires supervised process/container execution |
 | Plugin disabled | Reject new LMS routes/jobs; retain state, allow safe re-enable |
 | Migration interruption | Remain disabled/migration_required; retry verified idempotent step |
 | Billing provider outage | Deny new uncertain paid entitlements; preserve auditable known history |

@@ -9,7 +9,11 @@ A lesson can belong to the right publication but the **wrong course**; a progres
 ## Decision A — canonical IDs and locale variants
 
 - `lms_courses` (`publication_id`, `id`) is the stable course record; identity, lifecycle, curriculum revision and access policy are language-independent.
-- `lms_course_translations` (`publication_id`, `course_id`, `locale`, `slug`, `title`, `description`, `seo...`): UNIQUE(publication_id,course_id,locale) and UNIQUE(publication_id,locale,slug). Store translations for sections and lessons in tables with stable referenced IDs. Restricted lesson translations stay restricted; fallback must not publish a draft.
+- `lms_course_translations` (`publication_id`, `course_id`, `locale`, `slug`, `title`, `description`, `seo...`): UNIQUE(publication_id,course_id,locale) and UNIQUE(publication_id,locale,slug).
+- **Canonical lesson:** `lms_lessons` stores locale-neutral course, section, order, lifecycle, required and revision fields, but **no `content_ref` or `media_ref`**.
+- **Locale-specific lesson:** `lms_lesson_translations` stores `(publication_id,course_id,lesson_id,locale,title,body_ref,media_ref,translation_status)` with UNIQUE(pub,course,lesson,locale) and FK(pub,course,lesson) to `lms_lessons`. Section translations also FK(pub,course,section) to `lms_sections`.
+- **Shared media:** only through explicit `lms_lesson_shared_assets` that FK to the same publication/course/lesson. Every body/media grant requires current publication-scoped Member/entitlement validation regardless of language.
+- **Fallback:** only to an approved **published** target locale translation, respecting current publication locale policy and content visibility; never expose draft translations or private assets via public catalog/SEO/hydration.
 - Validate BCP-47 locale and publication-language policy via an approved public host localization service; plugin code must not import private `packages/i18n` internals. Provide canonical/hreflang only for published translations, redirect old slugs safely and avoid route collisions.
 - Progress, enrollment, quizzes and media authorization reference stable course/lesson IDs, **not translated slug/locale**. Switching Arabic ↔ English never changes enrolled course or completion history. Curriculum-revision progress reconciliation is separate from translation edits.
 
@@ -37,6 +41,11 @@ FOREIGN KEY (publication_id, course_id, enrollment_id)
 FOREIGN KEY (publication_id, course_id, lesson_id)
   REFERENCES lms_lessons (publication_id, course_id, id);
 UNIQUE (publication_id, course_id, enrollment_id, lesson_id);
+
+-- Applied to lesson translation/shared asset relation (conceptual):
+FOREIGN KEY (publication_id, course_id, lesson_id)
+  REFERENCES lms_lessons (publication_id, course_id, id);
+UNIQUE (publication_id, course_id, lesson_id, locale); -- lesson translation
 ```
 
 - `lms_lesson_progress` must store `course_id`, not just enrollment/lesson IDs; both composite FKs above are required. Index FK prefixes. Course archive is non-destructive when learner history exists.
@@ -47,7 +56,8 @@ UNIQUE (publication_id, course_id, enrollment_id, lesson_id);
 
 - Publication A/B and course A/B in the same publication: wrong section/lesson/enrollment/progress links fail at DB and API layers.
 - Member of publication B denied by publication A even with a valid Member session; requests cannot supply their own authoritative member/publication.
-- Locale switch, slug rename and translation fallback retain course/enrollment/progress identity and never expose draft/private content.
+- Locale switch, slug rename and translation fallback retain course/enrollment/progress identity and never expose draft/private content. Deny public Arabic-to-English fallback that would reveal unpublished English lesson or media.
+- Inserted translations/shared assets referencing another course or publication fail their composite FK; reusing an authorized media grant in another locale/course/member fails.
 - Fresh install, populated upgrade, partial migration failure/retry, large-table index validation, disable/re-enable and recovery retain learners' records.
 
 **Owner:** Architect, Security, DB/Migration, API, i18n/RTL, QA. This ADR is not an approved implementation contract until signed off.

@@ -14,9 +14,11 @@ Content Modeler is appropriate for selected public editorial catalog fields only
 | --- | --- | --- |
 | `lms_courses` | `id, publication_id, status, curriculum_revision, default_locale, created_at, updated_at` | UNIQUE(publication_id,id); **stable** course ID regardless of translation |
 | `lms_course_translations` | `publication_id, course_id, locale, slug, title, description, seo_*` | UNIQUE(publication_id,course_id,locale); UNIQUE(publication_id,locale,slug); FK to canonical course |
-| `lms_section_translations` / `lms_lesson_translations` | `publication_id, section_id/lesson_id, locale, translated fields` | Locale variants use same section/lesson ID; protected translations stay private |
+| `lms_section_translations` | `publication_id, course_id, section_id, locale, title` | FK(pub,course,section) and UNIQUE(pub,course,section,locale) |
+| `lms_lesson_translations` | `publication_id, course_id, lesson_id, locale, title, body_ref, media_ref, translation_status` | FK(pub,course,lesson) and UNIQUE(pub,course,lesson,locale); **locale-specific protected body/media** |
+| `lms_lesson_shared_assets` (only when needed) | `publication_id, course_id, lesson_id, asset_ref, purpose` | Explicit publication/course/lesson-owned shared media; access still private |
 | `lms_sections` | `id, publication_id, course_id, position` | UNIQUE(publication_id,course_id,id); FK(pub,course) to course, locale-neutral order |
-| `lms_lessons` | `id, publication_id, course_id, section_id, position, status, content_ref, media_ref` | UNIQUE(pub,course,id); composite FK(pub,course,section_id) to section; private refs |
+| `lms_lessons` | `id, publication_id, course_id, section_id, position, status, required, revision` | UNIQUE(pub,course,id), FK(pub,course,section_id); **locale-neutral structure only** |
 | `lms_enrollments` | `id, publication_id, course_id, member_id, status, source, enrolled_at, revoked_at` | UNIQUE(pub,course,id) + UNIQUE(pub,course,member_id); Member publication checked by host |
 | `lms_lesson_progress` | `id, publication_id, course_id, enrollment_id, lesson_id, completed_at, updated_at` | FK(pub,course,enrollment) and FK(pub,course,lesson); UNIQUE(pub,course,enrollment,lesson) |
 | `lms_enrollment_events` | `id, publication_id, course_id, enrollment_id, from_status, to_status, occurred_at` | Append-only enrollment status history |
@@ -28,7 +30,7 @@ Pro additions: `lms_quizzes`, `lms_questions`, `lms_quiz_attempts`, `lms_attempt
 
 ### Required invariants
 
-All course references share **publication and course ID**. `lms_lesson_progress` stores `course_id` to allow separate composite FKs to lesson and enrollment of that course. `lms_lessons` uses FK(publication_id,course_id,section_id). Locale translations share stable canonical IDs; enrollment/progress is never bound to a localized slug. Core Members currently lacks UNIQUE(publication_id,id), so its composite FK is **not** available without a separately approved additive core migration: require host-verified Member ownership and deletion/reconciliation, not a speculative FK. Full decision: [ADR-0002](adr/0002-course-localization-and-relations.md).
+All course references share **publication and course ID**. `lms_lesson_progress` stores `course_id` to allow separate composite FKs to lesson and enrollment of that course. `lms_lessons` uses FK(publication_id,course_id,section_id). Locale translations share stable canonical IDs; enrollment/progress is never bound to a localized slug. Localized lesson bodies and media belong **only to published, authorized `lms_lesson_translations`**, not canonical `lms_lessons`. Shared assets use an explicit composite FK link. Any fallback between languages requires host locale-policy approval, *published translation state* and fresh learner entitlement; never reveal private media in catalog, SSR metadata or public caches. Core Members currently lacks UNIQUE(publication_id,id), so its composite FK is **not** available without a separately approved additive core migration: require host-verified Member ownership and deletion/reconciliation, not a speculative FK. Full decision: [ADR-0002](adr/0002-course-localization-and-relations.md).
 
 ### Example composite isolation invariant
 
@@ -44,6 +46,10 @@ FOREIGN KEY (publication_id, course_id, enrollment_id)
   REFERENCES vibress_lms.lms_enrollments (publication_id, course_id, id);
 FOREIGN KEY (publication_id, course_id, lesson_id)
   REFERENCES vibress_lms.lms_lessons (publication_id, course_id, id);
+FOREIGN KEY (publication_id, course_id, lesson_id)
+  REFERENCES vibress_lms.lms_lessons (publication_id, course_id, id); -- translated lesson/shared asset
+UNIQUE (publication_id, course_id, lesson_id, locale) -- translated lesson
+UNIQUE (publication_id, course_id, section_id, locale) -- translated section
 UNIQUE (publication_id, course_id, member_id) -- enrollment
 UNIQUE (publication_id, course_id, enrollment_id, lesson_id) -- progress
 ```
@@ -72,7 +78,7 @@ If core Members permits a composite FK keyed by (publication_id,id), use it to g
 ## 5. Privacy, retention, exports and indexing
 
 - Treat Member IDs, enrollment/progress, quiz responses and certificate records as personal data; minimize and scope internal logs, analytics and events.
-- Public course indexes include only publication-approved metadata; no lesson secrets or student records.
+- Public course indexes include only publication-approved metadata. Never index or expose protected translated lesson bodies, private media references, draft fallback, quiz answers or learner records. All media references resolve through same-publication scoped storage and lesson access checks.
 - Private lesson media refer to protected object IDs; storage signed URLs must expire and be bound to verified authorization. Cache `private/no-store` where appropriate.
 - Create retention/export/delete jobs that respect legal obligations, education records and audit requirements; coordinate Member deletion with LMS records and referential integrity.
 - Backups include plugin schema, job/outbox ledgers, media and encryption keys. Restore must reconcile pending jobs to avoid duplicate side effects.

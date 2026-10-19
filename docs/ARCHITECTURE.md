@@ -55,7 +55,7 @@ Follow the host's public packages and tooling; this tree is a proposed layout, n
 
 ### Course/content
 
-Store protected course/lesson data in the LMS-owned schema to keep atomic access control and avoid accidentally publishing data via public content collections. Course/section/lesson IDs are **stable across locales**; translation tables own locale-specific slugs/content. Section-to-course, lesson-to-section/course, and progress-to-enrollment/lesson use matching `(publication_id, course_id, ...)` composite candidate keys and FKs; see [ADR-0002](adr/0002-course-localization-and-relations.md). If editorial catalog uses Content Modeler, link course to a publication-scoped content entry via host-mediated documented service; do not require raw Drizzle access, and make catalog projection explicit and fail-closed. Draft → published → archived; unpublished lesson references remain private.
+Store protected course/lesson data in the LMS-owned schema to keep atomic access control and avoid accidentally publishing data via public content collections. Course/section/lesson IDs are **stable across locales**; canonical lessons hold structural data only, while `lms_lesson_translations` owns locale-specific body/media refs with publication/course/lesson/locale keys. Explicit shared assets require a same-course FK and the same protected media rules. Section-to-course, lesson-to-section/course, and progress-to-enrollment/lesson use matching `(publication_id, course_id, ...)` composite candidate keys and FKs; see [ADR-0002](adr/0002-course-localization-and-relations.md). If editorial catalog uses Content Modeler, link course to a publication-scoped content entry via host-mediated documented service; do not require raw Drizzle access, and make catalog projection explicit and fail-closed. Draft → published → archived; unpublished lesson references remain private.
 
 ### Enrollment and learner identity
 
@@ -71,9 +71,9 @@ Use idempotent completion writes and transactions; all attempt timestamps and gr
 
 ## 5. Surfaces and presentation
 
-- **Admin:** registered nav and permission-checked, isolated course management view. Staff role checks on every mutation, even if links are hidden.
+- **Admin:** `adminNavigation.viewId` resolves only to a registered staff-only Studio view under the host-computed Studio base path, **never** the public `/extensions/vibress-lms/courses` URL. Its separate Admin API remains under `/api/admin/v1/extensions/...`, with authorization per request. Staff role checks on every mutation, even if links are hidden.
 - **Public web:** reserved `/extensions/vibress-lms/...` route until core collision-free aliases are approved; published SEO-safe course catalog and detail pages. Platform theme/locale contracts + accessible fallback first.
-- **Learner:** Member API and course dashboard, protected lesson SSR/view model with no-cache/private policy. Serve private media only through server-authorized short-lived grants.
+- **Learner:** Member API and course dashboard, protected localized lesson body/media resolved only after Member/publication/course/enrollment/entitlement and translation publication-state checks; private/no-store SSR/cache. Language fallback never leaks restricted media. Serve private media only through server-authorized short-lived grants.
 - **Theme integration:** optional course card, catalog/detail slots with sanitized localized data. Never mandate modifications to existing themes.
 - **i18n:** honor enabled locales and publication primary locale, BCP-47, mixed-direction text, Arabic RTL, accessible translated strings. Slugs and metadata belong to translation rows; enrollments and progress refer to locale-independent IDs.
 
@@ -88,7 +88,11 @@ Proposed versioned events, after core event extension contract is approved:
 
 Use durable event IDs and idempotent processing; event payload includes authoritative publication from host and does not grant permissions. Queue jobs can render certificate assets, recompute progress and send permitted notifications. Retries, worker restarts and disable must not duplicate results.
 
-## 7. Data migration, failure and operability
+## 7. Fault-containment boundary
+
+Trusted LMS code initially shares the Vibress Node.js process. Ordinary rejected handlers may be caught and fail closed. **Fatal in-process faults (OOM, CPU/event-loop blocking, `process.exit`, native crashes or global mutation) are not isolated; Vibress core continuity is not guaranteed.** Strong availability isolation would require separately supervised process/container execution and another security/operations ADR. No current in-process plugin is a reliable hostile-code sandbox.
+
+## 8. Data migration, failure and operability
 
 - Namespaced tables and migration ledger; expanding schemas, backfilling old records, then switching code; no rewriting released versions.
 - Fresh install and upgrade from production-like data have equivalent constraints.
@@ -97,7 +101,7 @@ Use durable event IDs and idempotent processing; event payload includes authorit
 - Observe requests/jobs by requestId, publicationId, courseId (where safe) and release version; redact PII and avoid high-cardinality telemetry dimensions.
 - Deploy under Docker/reverse proxy with deterministic **externally digest-pinned final archives**, content-addressed Admin/Web assets, CSP and worker rollout contract; no mandatory licensed proprietary service for the free LMS. Pro licensing, if introduced, is a [separate operator decision](LICENSING_AND_ENTITLEMENTS.md), never proof of student payment.
 
-## 8. Design decisions requiring explicit approval
+## 9. Design decisions requiring explicit approval
 
 1. Plugin-owned data access design in host SDK (recommended mediated typed repository; raw DB handle prohibited).
 2. Whether public editorial course metadata is an LMS projection or linked Content Modeler model; avoid source-of-truth duplication.
