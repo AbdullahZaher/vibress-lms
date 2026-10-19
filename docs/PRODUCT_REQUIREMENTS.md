@@ -33,7 +33,7 @@ Course authoring and instructor delegation must not blur Member and Staff identi
 | Feature | Acceptance |
 | --- | --- |
 | Course catalog | Published course list/detail, safe excerpts, slug and SEO; drafts never public |
-| Sections + lessons | Ordered hierarchy, draft/published/archived transitions, preview policy |
+| Sections + lessons | Ordered locale-neutral hierarchy; localized lesson body/media in publication/course/lesson/locale translation record, explicit shared media, draft/published preview policy |
 | Enrollment | Free/self-enroll or staff-invite, unique per (publication, course, member), status history |
 | Learning access | Enrollment and current policy checked on every lesson/media access, not just UI |
 | Progress | Per-lesson completion and aggregate course progress, atomic and duplicate-safe |
@@ -77,7 +77,7 @@ Course authoring and instructor delegation must not blur Member and Staff identi
 - **Availability:** LMS failure must not take down core CMS; use health-gated activation and isolated async processing.
 - **Data:** publication ownership constraints, transactionally consistent enroll/progress, repairable index, export/delete under operator privacy policy.
 - **Accessibility:** WCAG-oriented semantic navigation, focus order, captions/transcripts, keyboard-only player/quiz controls, high contrast, accessible validation/error descriptions.
-- **Localization:** stable course/section/lesson IDs with locale-specific title, lesson content and SEO slug, preserving progress on locale switch. Use platform locale policy/translation APIs, not hardcoded LTR/English. RTL layouts and mixed numbers/Latin fragments tested.
+- **Localization:** stable course/section/lesson IDs with locale-specific title, **private lesson body/media references**, publication state and SEO slug; a shared asset requires explicit attachment and grant. Preserves progress on locale switch. Use platform locale policy/translation APIs, not hardcoded LTR/English. RTL layouts and mixed numbers/Latin fragments tested.
 - **SEO:** list/detail pages safe metadata, canonical/hreflang, noindex restricted lessons, consistent slugs under locale prefix, no duplication with Content Modeler.
 - **Self-hosting:** Postgres/Redis/reverse proxies/Docker, no hidden remote installer; backup/restore includes LMS schema, secrets and private files.
 - **Compatibility:** host SDK major matrix, data migration head, theme fallback and old persisted course schema support documented.

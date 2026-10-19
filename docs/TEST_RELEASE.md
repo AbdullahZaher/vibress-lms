@@ -22,19 +22,19 @@
 - Publication A vs B with deliberately identical course slug and member-like identifiers; access must be scoped to authoritative context. **A valid Member B session MUST be denied on A's site**, even when no tenant ID is supplied.
 - Anonymous cannot read draft course, protected lesson, answer keys, enrollment roster or video secret via direct API, SSR payload, search, theme Liquid or cache.
 - Role spoofing by request body/header cannot alter scope; malicious published content cannot XSS admin/student page.
-- Disabled plugin cannot receive API request, route render or newly enqueued job.
+- Disabled plugin cannot receive API request, route render or newly enqueued job. Studio navigation references an admitted staff-only `adminViewId`, never the public `/extensions/vibress-lms/courses` route; spoofed view IDs/unauthorized Staff and URL collisions denied.
 
 ### Consistency / failure
 
 - Parallel identical enrollments → one enrollment and append-only status history; parallel completion → one completed state. Enforced database + API rejection of a lesson linked to another course's section, or progress pairing an enrollment/lesson from different courses **within the same publication**.
-- Timeout/retry/out-of-order event → no duplicate change or student notification.
+- Timeout/retry/out-of-order event → no duplicate change or student notification. Distinguish catchable rejected handlers (stable request failure) from in-process fatal failures: **do not assert arbitrary OOM/CPU stall/process exit cannot affect core**. An explicit supervised process/container fault-injection suite is required before claiming hard isolation.
 - Course republish and curriculum edits preserve historical progress according to published policy.
 - Invalid migration, partial failure, double-run, concurrent activation, older-schema upgrade, restored DB + media.
 - Provider unavailable, payment revoked, plan changed, course archived; access policy fail-closed when paid entitlement is uncertain.
 
 ### Global UI and SEO
 
-- Arabic RTL, English LTR, mixed English digits and Arabic text; one canonical course/lesson ID across locales, student enrollment/progress preserved while switching languages, labels, error messages, long translations and BCP-47 fallback.
+- Arabic RTL, English LTR, mixed English digits and Arabic text; verify language-specific lesson body/media references never leak across public catalog or unauthorized draft fallback; intentionally shared assets require the same publication/course/lesson authorization; one canonical course/lesson ID across locales, student enrollment/progress preserved while switching languages, labels, error messages, long translations and BCP-47 fallback.
 - Keyboard-only navigation through lesson list, buttons, dialogs, media player and quizzes; focus preservation and screen-reader output.
 - Mobile/narrow view, zoom/reflow, dark/light themes; built-in and external Liquid theme fallback.
 - Canonical/hreflang and published-course metadata; protected lessons not indexed, no leaked meta tags.
@@ -43,7 +43,7 @@
 
 1. Format/lint/typecheck + no direct imports from `@vibress/database` or other core internals.
 2. Shared runtime schema and unit tests.
-3. Host consumer conformance run against minimum and latest supported SDK major/minor.
+3. Host consumer conformance run against minimum and latest supported SDK major/minor. Independent LMS artifact publishes runtime schemas only through public SDK, host validates with `@vibress/api-contracts` adapters, and scoped repositories reject unregistered models, forged tenant filters, raw SQL and invalid transactional writes.
 4. Ephemeral Postgres/Redis tests: fresh, legacy fixture upgrade, migration recovery and two-publication isolation.
 5. API integration and Playwright web/admin/portal flows, including RTL and accessibility checks.
 6. Reproducible operator package build, **SHA-256 of final archive verified against separately trusted release metadata**, pinned Admin/Web assets and audited dependencies.
@@ -65,9 +65,10 @@ Never label a check as passed without running it. Include test command, environm
 - [ ] Published host API stable and all required capabilities implemented.
 - [ ] Trusted package checksum/signature/allowlist verified in production image.
 - [ ] Two-publication cross-read/write tests green, including valid Member B session denied on A.
-- [ ] Same-course composite FK rejection, translations/locale switch preserve enrollment/progress.
+- [ ] Same-course composite FK rejection, translations/locale switch preserve enrollment/progress; protected body/media belongs to locale translation (or explicit shared asset) and fallback cannot leak draft/private content.
 - [ ] Canonical vs alternate SDK adapter policy and real event/deactivate lifecycle tests green.
-- [ ] Trusted external archive checksum, content-addressed Admin/Web assets and Worker admission green.
+- [ ] Trusted external archive checksum, registered authenticated Studio `viewId` distinct from public Web routes, content-addressed Admin/Web assets and Worker admission green.
+- [ ] Public SDK typed storage/runtime schema conformance validated by host API contracts without plugin private imports.
 - [ ] Before Pro release: offline/expiry signed feature claims independently tested from learner billing access.
 - [ ] Staff/Member/anonymous distinctions and origin/CSRF enforced.
 - [ ] Protected lesson/media/quiz answer privacy suite green.

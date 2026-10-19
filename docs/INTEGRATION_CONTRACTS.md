@@ -60,7 +60,8 @@ This is a requirements example, **not** accepted schema. `artifactRef` resolves 
 | Member enrollments | `/api/members/v1/extensions/vibress-lms/v1/enrollments` | Member session, own-member ownership, origin/CSRF on writes |
 | Member progress | `/api/members/v1/extensions/vibress-lms/v1/progress` | Member session, enrolled course, idempotency key |
 | Public catalog | `/api/content/v1/extensions/vibress-lms/v1/courses` | Publication-resolved, published safe projection, rate-limited |
-| Web catalog | `/extensions/vibress-lms/courses` | Locale and SEO aware, no protected content |
+| Web catalog | `/extensions/vibress-lms/courses` | Public Web site, locale/SEO, no protected lesson content; **not a Studio navigation target** |
+| Staff course-editor view | Registered `adminViews[].id = "course-editor"`; `adminNavigation[].viewId` references it | Studio host resolves authenticated view URL from its configured base path; Admin API stays under its separate versioned prefix |
 | Protected lesson | `/extensions/vibress-lms/learn/...` | Server-authorized member/private cache; fail closed |
 
 Response/error shape must follow Vibress: `{"errors":[{"code":"...","message":"...","requestId":"..."}]}`. Parameter/query/body/response schemas live in publicly consumed versioned contracts; no raw unvalidated JSON or unscoped data repos.
@@ -93,11 +94,12 @@ For each LMS tag, record `LMS release / host SDK protocol major.minor / supporte
 
 - [Dual SDK compatibility](https://github.com/AbdullahZaher/vibress/blob/docs/external-plugin-platform-plan-20261019/docs/08-plugins/external-extensions-sdk-compatibility.md): canonical runtime ABI, explicit adapter for legacy consumers, actual named-event/deactivate lifecycle.
 - [Authoritative Member/publication + scoped storage](https://github.com/AbdullahZaher/vibress/blob/docs/external-plugin-platform-plan-20261019/docs/08-plugins/external-extensions-identity-data.md): Member session alone doesn't bind the site publication; host validates equality, privacy and typed repositories.
-- [Trusted archive + Admin/Web/Worker runtime](https://github.com/AbdullahZaher/vibress/blob/docs/external-plugin-platform-plan-20261019/docs/08-plugins/external-extensions-package-and-ui.md): final bytes digest outside archive, content-addressed UI assets, reserved Next.js route dispatcher and worker version compatibility.
+- [Trusted archive + separate Studio/Web/Worker runtime](https://github.com/AbdullahZaher/vibress/blob/docs/external-plugin-platform-plan-20261019/docs/08-plugins/external-extensions-package-and-ui.md): final bytes digest outside archive, registered `adminViewId`, content-addressed UI assets, reserved public Next.js route and worker compatibility.
+- [Typed scoped storage/runtime schema contract](https://github.com/AbdullahZaher/vibress/blob/docs/external-plugin-platform-plan-20261019/docs/08-plugins/external-extensions-storage-contract.md): approved design candidate for admitted named models, publication-bound queries, transactions, SDK-owned route schemas and host `@vibress/api-contracts` validation. Not shipped yet.
 - [ADR-0002: canonical course IDs/translations/composite FKs](adr/0002-course-localization-and-relations.md).
 - [Pro licensing vs learner course entitlements](LICENSING_AND_ENTITLEMENTS.md).
 
-No circular acceptance: `LMS-101..106` is the cross-repo pilot that satisfies core `EXT-501..504`. Prerequisites are EXT-0xx/1xx/2xx and minimal EXT-3xx, not an already completed pilot.
+**Pilot vs production:** Core EXT-0xx decisions, EXT-101..104, EXT-201..204 and minimal EXT-301/302 unblock the **internal** LMS-101..106 vertical slice (and measure EXT-501). The pilot may keep flows synchronous until the worker API exists; no fake events/jobs. Full EXT-301..304, EXT-401..404 and EXT-501..504 plus LMS MVP tests, backup/restore and multi-replica security are **production/support-contract freeze gates**. EXT-502..504 are completed after measured pilot and operational evidence, not prerequisites to begin LMS-101.
 
 ## 9. Definition of integration readiness
 

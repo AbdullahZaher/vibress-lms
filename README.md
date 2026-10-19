@@ -18,7 +18,7 @@ Allow a Vibress publication to create courses/lessons, enroll learners using exi
 | [Product requirements](docs/PRODUCT_REQUIREMENTS.md) | Actors, use cases, MVP vs Pro, non-functional criteria |
 | [Architecture](docs/ARCHITECTURE.md) | Components, boundaries, data flow, rendering, self-hosting |
 | [Integration contracts](docs/INTEGRATION_CONTRACTS.md) | **Proposed** host APIs, capability dependencies and compatibility |
-| [Data model](docs/DATA_MODEL.md) | Plugin-owned PostgreSQL tables, consistency, migrations and retention |
+| [Data model](docs/DATA_MODEL.md) | Plugin-owned tables; canonical lesson identity, locale-owned body/media, scoped relations and migrations |
 | [Canonical course identity, locale and FK ADR](docs/adr/0002-course-localization-and-relations.md) | Same-course constraints and stable translations/progress |
 | [Pro licensing vs learner entitlements](docs/LICENSING_AND_ENTITLEMENTS.md) | Separate optional paid-feature license from student access |
 | [Security and operations](docs/SECURITY_OPERATIONS.md) | Tenant isolation, auth, paid media, threats, backups, incident response |
@@ -27,6 +27,8 @@ Allow a Vibress publication to create courses/lessons, enroll learners using exi
 | [ADR 0001](docs/adr/0001-extension-boundary.md) | Trusted extension boundary and rejected alternatives |
 
 Core platform proposals (on a separate Vibress docs branch at time of writing): [Plugin platform architecture](https://github.com/AbdullahZaher/vibress/blob/docs/external-plugin-platform-plan-20261019/docs/08-plugins/external-extensions-architecture.md), [contracts](https://github.com/AbdullahZaher/vibress/blob/docs/external-plugin-platform-plan-20261019/docs/08-plugins/external-extensions-contracts.md), and [roadmap](https://github.com/AbdullahZaher/vibress/blob/docs/external-plugin-platform-plan-20261019/docs/08-plugins/external-extensions-roadmap.md). These are draft links, not yet stable merged specifications.
+
+The planned [Vibress typed storage/runtime validation contract](https://github.com/AbdullahZaher/vibress/blob/docs/external-plugin-platform-plan-20261019/docs/08-plugins/external-extensions-storage-contract.md) is a proposed public SDK design, **not a callable API**. Studio course navigation uses registered `adminViewId`, not public course URLs. Trusted in-process code is not isolated against fatal crashes; a production hard-isolation promise needs a supervised process/container design.
 
 ## Intended milestones
 
