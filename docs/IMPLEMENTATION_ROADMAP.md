@@ -21,9 +21,9 @@
 | Ticket | Deliverable | Definition of done |
 | --- | --- | --- |
 | LMS-001 | Approve product scope and actor/identity model | Member/Staff/instructor boundaries documented |
-| LMS-002 | Review host SDK/EXT dependency and plugin support matrix | Host APIs accepted and published; feature flags/blocked items explicit |
-| LMS-003 | ADR on course content source and plugin data ownership | Private lessons isolated; no public Content Modeler leakage |
-| LMS-004 | Threat model for paid content, assessments, staff access and media | Review sign-off; denial matrix agreed |
+| LMS-002 | Review both plugin SDK shapes, adapter, typed host contract, trusted external lockfile and UI package format | Canonical host ABI accepted, v1/legacy migration documented, no internal archive self-checksum |
+| LMS-003 | Approve [ADR-0002](adr/0002-course-localization-and-relations.md): stable course IDs, locale rows, same-course composite keys | Safe translated slugs/progress, no cross-course or private Content Modeler leakage |
+| LMS-004 | Member/publication equality, paid media, Staff/learner boundaries, Pro licensing vs course entitlements | Valid Member B session denied on A publication; policies and denial matrix approved |
 
 **Gate:** EXT-101..104, EXT-201..204 plus minimal EXT-301/302 interfaces usable; otherwise work remains design/prototype, not production plugin.
 
@@ -32,10 +32,10 @@
 | Ticket | Deliverable | Acceptance |
 | --- | --- | --- |
 | LMS-101 | Independent package skeleton, pinned host SDK, manifest and operator install docs | Build/test against published host fixture; no private imports |
-| LMS-102 | Plugin-owned migration `0001`: course, section, lesson, enrollment, progress, idempotency | Empty + non-empty upgrade/restore tests, multi-publication constraints |
+| LMS-102 | Migration `0001`: canonical course, sections, lessons, translations, enrollment history, progress and idempotency | Non-empty/fresh migration tests, SQL composite FK cross-course rejection, member-FK decision and locale invariants |
 | LMS-103 | Minimal admin course draft/publish API and UI | Authorized Staff only; input/runtime schemas; origin/role tests |
 | LMS-104 | Published public course/detail + protected lesson default page | Draft invisible, safe metadata, locale/SEO, accessible fallback |
-| LMS-105 | Member free enrollment and lesson access/complete | Ownership, idempotency, wrong publication, disabled plugin tests |
+| LMS-105 | Member enrollment and completion via host-verified publication and same-course constraints | B Member on A publication denied, idempotency, cross-course, wrong owner, disabled plugin |
 | LMS-106 | Dual-publication integration and Docker deploy rehearsal | One enabled/one disabled; upgrade/re-enable preserves learner data |
 
 **Gate (pilot acceptance):** No LMS-specific core patch, two themes, English+Arabic RTL, public/private separation, real host conformance tests pass.
@@ -47,7 +47,7 @@
 | LMS-201 | Course curriculum builder, section ordering, draft/published transitions | Transactional saves, revision policy, invalid state rejection |
 | LMS-202 | Learner course dashboard, lesson resume, course progress | Correct counts on duplicates/curriculum edits, accessible states |
 | LMS-203 | Admin enroll/unenroll controls, staff permissions and learner list pagination | Audited, publication-scoped, least-privilege exports |
-| LMS-204 | Content localization, media permissions, safe course SEO | RTL keyboard/mobile, restricted noindex, private asset checks |
+| LMS-204 | Canonical locale variants, per-locale slug/SEO, protected media | No reset on locale change, duplicate slug/fallback tests, Arabic RTL, noindex/private content |
 | LMS-205 | Events/jobs, audit, dedup and queues for LMS domain | Worker retry/crash/replay tests; no lost updates |
 | LMS-206 | Docs, ops and staging recovery drill | Reproducible Docker, backup/restore, downtime guidance |
 
@@ -73,15 +73,24 @@
 | LMS-402 | One-time course purchase **only after supported Vibress commerce capability** | Verified payment truth, refund/reversal policies |
 | LMS-403 | Drip/prerequisite policy, learning paths | Date/timezone correctness, old courses unchanged |
 | LMS-404 | Additional integrations/webhooks and scalable media adapters | Signing, retries, SSRF, optional provider resilience |
-| LMS-405 | Plugin release and licensing distribution, only if desired | Offline/self-hosting and operator control preserved |
+| LMS-405 | Separate [LMS Pro license](LICENSING_AND_ENTITLEMENTS.md), offline/revocation and release distribution, after business approval | Signed feature claims, outage/expiry, no data loss, free self-hosted functionality unaffected |
 
 **Gate:** separate feature ADR/security/billing review; never add checkout by directly using provider secrets in LMS or bypassing core.
 
 ## Cross-repository critical path
 
-`EXT-0xx design → EXT-1xx install → EXT-2xx scoped APIs/data → EXT-3xx admin/web → LMS-101..106 → LMS-201..206 → Pro optional → Commerce conditional`.
+Core `EXT-0xx design → EXT-1xx trusted install → EXT-2xx authoritative scope/typed data → minimal EXT-3xx admin/web → LMS-101..106 → LMS-201..206 → Pro optional → Commerce conditional`. **LMS-101..106 is the pilot** used to complete EXT-501..504; never require finished EXT-501 before LMS-101 starts.
 
 EXT-401..404 (async, backup, trusted release hardening) must be complete before public LMS MVP release even if the pilot starts without background jobs.
+
+## P0 remediation mapping
+
+- SDK dual shapes/event/deactivate: EXT-001/102/104 + LMS-002.
+- Member publication binding and legacy settings: EXT-103/202 + LMS-004/105.
+- Typed scoped data/composite FKs/translation identity: EXT-203 + LMS-003/102/204.
+- Detached final artifact digest and versioned UI/SSR/Worker: EXT-101/301/302/401 + LMS-101/103/104.
+- Pro licensing separate from learner access: LMS-401/402/405 and [license RFC](LICENSING_AND_ENTITLEMENTS.md).
+These are review and acceptance dependencies, **not completed code**.
 
 ## Acceptance standards for each ticket
 

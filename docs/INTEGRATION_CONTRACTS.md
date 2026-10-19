@@ -7,7 +7,8 @@ Do not compile against example signatures until the platform's versioned plugin 
 
 | Core surface | Source / constraint |
 | --- | --- |
-| Plugin SDK `PluginModule.activate`, `deactivate`, `onEvent` | `packages/plugin-sdk/src/index.ts` |
+| Plugin SDK `PluginModule.activate`, `deactivate`, `onEvent` | `packages/plugin-sdk/src/index.ts`; canonical current API host shape |
+| Alternate `VibressPlugin.onActivate/onDeactivate/onEvent` | `packages/plugin-core/src/index.ts`; **not** the same context/manifest or ABI |
 | Hard-coded trusted plugin host | `apps/api/src/plugins/plugin-host.ts`; cannot load arbitrary standalone LMS package |
 | Staff plugin management | `apps/api/src/routes/platform.ts`, `plugins.read/manage`, origin validation |
 | Member auth | `apps/api/src/middleware/member-auth.ts` and Member domain; distinct from Staff |
@@ -15,7 +16,7 @@ Do not compile against example signatures until the platform's versioned plugin 
 | Content model collections and theme integration | `packages/domains/content-modeler`, `apps/web/src/app/collections` and Liquid view models |
 | Async jobs / outbound webhooks | Core BullMQ and delivery system; no generic plugin job registration API yet |
 
-The core `@vibress/plugin-sdk` has a source-level `SDK_VERSION = "1.0.0"`, regardless of npm package version. Current manifest registration is **not** code installation. Capability labels are not all backed by invokable mediated services today.
+The core `@vibress/plugin-sdk` has a source-level `SDK_VERSION = "1.0.0"`, regardless of npm package version (`1.2.0` today). `plugin-core` separately defines incompatible `VibressPlugin`; approve an explicit ABI/consumer adapter plan. Current `deactivatePlugin` does not invoke `deactivate()`, and event dispatch does not forward the real event name. Current manifest registration is **not** code installation. Capability labels are not all backed by invokable mediated services today.
 
 ## 2. Required host prerequisites (tracked in Vibress EXT roadmap)
 
@@ -25,7 +26,7 @@ The core `@vibress/plugin-sdk` has a source-level `SDK_VERSION = "1.0.0"`, regar
 | EXT-201..204 | auth-scoped route handlers, scoped data, member/entitlement services | Cannot implement secure external domain APIs |
 | EXT-301..303 | admin view, public route, locale/SEO/theme slots | Cannot deliver editor/learner UI |
 | EXT-401..403 | worker registration, settings/backup/upgrade | Needed before production release |
-| EXT-501..504 | cross-repo pilot and compatibility gates | Required for stable external integration |
+| EXT-501..504 | cross-repo pilot and compatibility gates | **Fulfilled by LMS-101..106 pilot**; not a prerequisite for starting that pilot |
 
 See proposed [host contracts](https://github.com/AbdullahZaher/vibress/blob/docs/external-plugin-platform-plan-20261019/docs/08-plugins/external-extensions-contracts.md).
 
@@ -37,6 +38,7 @@ See proposed [host contracts](https://github.com/AbdullahZaher/vibress/blob/docs
   "version": "0.1.0",
   "hostApi": {"major": 2, "minMinor": 0},
   "entrypoint": "dist/server/index.js",
+  "artifactRef": "vibress-lms@0.1.0",
   "capabilities": [
     "extension.routes.admin",
     "extension.routes.member",
@@ -48,7 +50,7 @@ See proposed [host contracts](https://github.com/AbdullahZaher/vibress/blob/docs
 }
 ```
 
-This is a requirements example, **not** accepted schema. The final manifest adds audited artifact integrity, migration head, scoped permissions, settings and contribution schema. Package versions, SDK protocol versions, API endpoint versions and migration heads are independently versioned.
+This is a requirements example, **not** accepted schema. `artifactRef` resolves only from an **operator-trusted external release lockfile or detached signed envelope** holding the SHA-256 of the *final archive*. Never embed an archive's own digest inside the same archive. The final approved manifest also needs migration head, permissions, settings and contribution schema. Package versions, SDK protocol versions, API endpoint versions and migration heads are independently versioned.
 
 ## 4. Proposed API paths
 
@@ -87,6 +89,16 @@ Potential use of a Content Modeler entry to expose **published, non-sensitive ca
 
 For each LMS tag, record `LMS release / host SDK protocol major.minor / supported core versions / migration head / required capabilities`, and test against the lowest and latest supported core patch. Disable activation for unsupported matrix cells with clear operator feedback; never auto-run a new migration against incompatible code.
 
-## 8. Definition of integration readiness
+## 8. Blocking host and LMS contracts
+
+- [Dual SDK compatibility](https://github.com/AbdullahZaher/vibress/blob/docs/external-plugin-platform-plan-20261019/docs/08-plugins/external-extensions-sdk-compatibility.md): canonical runtime ABI, explicit adapter for legacy consumers, actual named-event/deactivate lifecycle.
+- [Authoritative Member/publication + scoped storage](https://github.com/AbdullahZaher/vibress/blob/docs/external-plugin-platform-plan-20261019/docs/08-plugins/external-extensions-identity-data.md): Member session alone doesn't bind the site publication; host validates equality, privacy and typed repositories.
+- [Trusted archive + Admin/Web/Worker runtime](https://github.com/AbdullahZaher/vibress/blob/docs/external-plugin-platform-plan-20261019/docs/08-plugins/external-extensions-package-and-ui.md): final bytes digest outside archive, content-addressed UI assets, reserved Next.js route dispatcher and worker version compatibility.
+- [ADR-0002: canonical course IDs/translations/composite FKs](adr/0002-course-localization-and-relations.md).
+- [Pro licensing vs learner course entitlements](LICENSING_AND_ENTITLEMENTS.md).
+
+No circular acceptance: `LMS-101..106` is the cross-repo pilot that satisfies core `EXT-501..504`. Prerequisites are EXT-0xx/1xx/2xx and minimal EXT-3xx, not an already completed pilot.
+
+## 9. Definition of integration readiness
 
 Independent release artifact built and admitted; no core private imports; dual-publication auth/tenant tests; protected media and student data inaccessible from public cache; RTL/SEO theme fallback; migrations and backup/restore verified; disable/upgrade tested; CI contract suite passes. Until then `vibress-lms` is an architecture plan.

@@ -39,7 +39,7 @@ Course authoring and instructor delegation must not blur Member and Staff identi
 | Progress | Per-lesson completion and aggregate course progress, atomic and duplicate-safe |
 | Admin | Course/lesson management, student counts, basic enrollment/status controls |
 | Learner | My courses, lesson navigation, progress/resume, accessible error/empty/loading states |
-| Localization | BCP-47 locale resolution and Arabic RTL, mixed-direction content, translated labels |
+| Localization | One stable course/lesson identity and locale-specific translation/slug rows; BCP-47 policy and Arabic RTL; progress unaffected by language |
 | Observability | Audited admin mutations, request IDs, basic completion/error metrics |
 | Operations | Safe migrations, retain data on disable, encrypted configuration, tested backup/restore |
 
@@ -49,7 +49,7 @@ Course authoring and instructor delegation must not blur Member and Staff identi
 - Assignments/manual grading, instructor delegation and moderation audit.
 - Signed/verifiable certificates, revocation, verification URL, downloadable formats.
 - Drip scheduling/prerequisites, cohorts, learning paths, detailed reporting.
-- Billing/commerce access: **recurring** entitlements via existing subscription reader when contract exists; **one-time** purchase/checkout only after a reviewed commerce capability is built. Refund/cancellation semantics must revoke future access without destroying history.
+- Billing/commerce access: **recurring** entitlements through an approved core reader; **one-time** purchase/checkout only after a reviewed commerce capability. Refund/cancellation revokes access, not learning history. **Separately**, LMS Pro operator licensing has distinct policy and never proves student payment; see [licensing and entitlements](LICENSING_AND_ENTITLEMENTS.md).
 - Notifications, email, webhooks, calendar/live-session integrations, SCORM/xAPI only if justified by separate RFCs.
 
 ### Explicitly out of scope until reviewed
@@ -77,7 +77,7 @@ Course authoring and instructor delegation must not blur Member and Staff identi
 - **Availability:** LMS failure must not take down core CMS; use health-gated activation and isolated async processing.
 - **Data:** publication ownership constraints, transactionally consistent enroll/progress, repairable index, export/delete under operator privacy policy.
 - **Accessibility:** WCAG-oriented semantic navigation, focus order, captions/transcripts, keyboard-only player/quiz controls, high contrast, accessible validation/error descriptions.
-- **Localization:** use platform locale policy/translation APIs, not hardcoded LTR/English. RTL layouts and mixed numbers/Latin fragments tested.
+- **Localization:** stable course/section/lesson IDs with locale-specific title, lesson content and SEO slug, preserving progress on locale switch. Use platform locale policy/translation APIs, not hardcoded LTR/English. RTL layouts and mixed numbers/Latin fragments tested.
 - **SEO:** list/detail pages safe metadata, canonical/hreflang, noindex restricted lessons, consistent slugs under locale prefix, no duplication with Content Modeler.
 - **Self-hosting:** Postgres/Redis/reverse proxies/Docker, no hidden remote installer; backup/restore includes LMS schema, secrets and private files.
 - **Compatibility:** host SDK major matrix, data migration head, theme fallback and old persisted course schema support documented.
@@ -87,6 +87,8 @@ Course authoring and instructor delegation must not blur Member and Staff identi
 Activation success, first-course publish completion, first-enrollment success, lesson completion correctness, enrollment access-denial rate, course progress reconciliation rate, learner task success under Arabic/RTL, migration failure/recovery rate and upgrade compatibility across supported versions.
 
 ## 6. MVP release blockers
+
+**Additional P0 decisions:** dual SDK ABI/adapters, Member-publication equality in the extension host, safe typed plugin data and same-course composite FKs, detached trusted archive checksum, content-addressed Admin/Web/Worker runtime and canonical locale translation model must be specified and tested before declaring the MVP release-ready. See [ADR-0002](adr/0002-course-localization-and-relations.md).
 
 No independently installed working host package; inability to ensure multi-publication isolation; public access to protected lesson or answer keys; paid entitlement assumed without a compatible contract; untested backfill/upgrade/restore; inaccessible RTL player/learner flow; plugin disabled but endpoints still active.
 

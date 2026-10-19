@@ -12,25 +12,40 @@ Content Modeler is appropriate for selected public editorial catalog fields only
 
 | Table | Key and essential columns | Constraints and purpose |
 | --- | --- | --- |
-| `lms_courses` | `id, publication_id, slug, status, title, description, locale, created_at, updated_at` | UNIQUE(publication_id, slug); draft/published/archived; title localization requires approved policy |
-| `lms_sections` | `id, publication_id, course_id, position, title` | FK(publication_id, course_id); deterministic order |
-| `lms_lessons` | `id, publication_id, course_id, section_id, position, status, content_ref, media_ref` | Composite FK into course/section; protected references; draft/published |
-| `lms_enrollments` | `id, publication_id, course_id, member_id, status, source, enrolled_at, revoked_at` | UNIQUE(publication_id, course_id, member_id); bounded status transitions |
-| `lms_lesson_progress` | `id, publication_id, enrollment_id, lesson_id, completed_at, updated_at` | UNIQUE(publication_id, enrollment_id, lesson_id); consistent transaction |
+| `lms_courses` | `id, publication_id, status, curriculum_revision, default_locale, created_at, updated_at` | UNIQUE(publication_id,id); **stable** course ID regardless of translation |
+| `lms_course_translations` | `publication_id, course_id, locale, slug, title, description, seo_*` | UNIQUE(publication_id,course_id,locale); UNIQUE(publication_id,locale,slug); FK to canonical course |
+| `lms_section_translations` / `lms_lesson_translations` | `publication_id, section_id/lesson_id, locale, translated fields` | Locale variants use same section/lesson ID; protected translations stay private |
+| `lms_sections` | `id, publication_id, course_id, position` | UNIQUE(publication_id,course_id,id); FK(pub,course) to course, locale-neutral order |
+| `lms_lessons` | `id, publication_id, course_id, section_id, position, status, content_ref, media_ref` | UNIQUE(pub,course,id); composite FK(pub,course,section_id) to section; private refs |
+| `lms_enrollments` | `id, publication_id, course_id, member_id, status, source, enrolled_at, revoked_at` | UNIQUE(pub,course,id) + UNIQUE(pub,course,member_id); Member publication checked by host |
+| `lms_lesson_progress` | `id, publication_id, course_id, enrollment_id, lesson_id, completed_at, updated_at` | FK(pub,course,enrollment) and FK(pub,course,lesson); UNIQUE(pub,course,enrollment,lesson) |
+| `lms_enrollment_events` | `id, publication_id, course_id, enrollment_id, from_status, to_status, occurred_at` | Append-only enrollment status history |
 | `lms_idempotency_keys` | `publication_id, scope, actor_id, operation, key, response_hash, expires_at` | Dedup enroll/complete/quiz events; no raw bearer tokens |
 | `lms_audit_events` | `id, publication_id, actor_kind, actor_id, action, target_id, occurred_at, request_id` | Redacted immutable history, retention schedule |
 | `lms_outbox_events` | `id, publication_id, event_type, payload, published_at` | Durable event delivery; retries and dedup |
 
 Pro additions: `lms_quizzes`, `lms_questions`, `lms_quiz_attempts`, `lms_attempt_answers`, `lms_certificates`, `lms_course_entitlements`, `lms_instructor_assignments`. These are **not** part of spike/migration 0001 unless a concrete accepted use case requires them.
 
+### Required invariants
+
+All course references share **publication and course ID**. `lms_lesson_progress` stores `course_id` to allow separate composite FKs to lesson and enrollment of that course. `lms_lessons` uses FK(publication_id,course_id,section_id). Locale translations share stable canonical IDs; enrollment/progress is never bound to a localized slug. Core Members currently lacks UNIQUE(publication_id,id), so its composite FK is **not** available without a separately approved additive core migration: require host-verified Member ownership and deletion/reconciliation, not a speculative FK. Full decision: [ADR-0002](adr/0002-course-localization-and-relations.md).
+
 ### Example composite isolation invariant
 
 ```sql
 -- Conceptual only: SQL must be generated from approved schema and reviewed.
 UNIQUE (publication_id, id) -- parent course
+UNIQUE (publication_id, course_id, id) -- sections, lessons, enrollments
 FOREIGN KEY (publication_id, course_id)
   REFERENCES vibress_lms.lms_courses (publication_id, id);
+FOREIGN KEY (publication_id, course_id, section_id)
+  REFERENCES vibress_lms.lms_sections (publication_id, course_id, id);
+FOREIGN KEY (publication_id, course_id, enrollment_id)
+  REFERENCES vibress_lms.lms_enrollments (publication_id, course_id, id);
+FOREIGN KEY (publication_id, course_id, lesson_id)
+  REFERENCES vibress_lms.lms_lessons (publication_id, course_id, id);
 UNIQUE (publication_id, course_id, member_id) -- enrollment
+UNIQUE (publication_id, course_id, enrollment_id, lesson_id) -- progress
 ```
 
 If core Members permits a composite FK keyed by (publication_id,id), use it to guarantee same-publication membership; otherwise validate authoritatively via host Members service and enforce through transaction/constraint design. Do not assume core Member schema has an index not explicitly verified.
