@@ -1,6 +1,6 @@
 # ADR-0001 — LMS as an externally versioned trusted Vibress extension
 
-**Status:** PROPOSED  
+**Status:** Accepted — architecture direction; external host SDK and LMS features NOT implemented. [RFC approval](../RFC_APPROVAL.md).  
 **Date:** 2026-10-19
 
 ## Context
@@ -25,8 +25,8 @@ LMS requires course authoring, enrollment, progress, protected lessons, assessme
 4. **Content Modeler only for all LMS data:** rejected; learner/gradebook/protected content need transactional private tables and stronger authorization.
 5. **In-process arbitrary uploaded ZIP:** rejected; SDK capabilities and `node:vm` are not security sandboxes.
 
-## Conditions for acceptance
+## Implementation and production release gates (not prerequisites to the ADR design decision)
 
-Platform EXT-0xx contracts + threat model approved (dual SDK adapter, Member/publication binding, typed repositories, final-archive detached digest, Admin/Web/Worker loader), independent package installs without core edits, protected member lesson and course admin pass two-publication tests, upgrade/backups and RTL/theme fallback verified. Then promote this ADR to Accepted with commit links, contract versions and real validation evidence.
+The architecture direction is accepted by project request and documented in [RFC approval](../RFC_APPROVAL.md). Implementation is authorized **only** after host EXT-0xx contract review: dual SDK/v1 adapter, Member-publication binding, typed repositories, externally verified final archive, separately scoped Studio/Web and worker lifecycle. Before external **production** release: independently installed package without plugin-specific core edits; protected member lesson + Staff course editor with two-publication negative tests; nonempty upgrade/backup/restore; Arabic RTL, theme/accessibility, worker idempotency and Docker/multi-replica recovery must pass. These gates do not prevent accepting the direction; they block declaring the feature or SDK implemented/stable.
 
 Related: [architecture](../ARCHITECTURE.md), [integration prerequisites](../INTEGRATION_CONTRACTS.md), [roadmap](../IMPLEMENTATION_ROADMAP.md).

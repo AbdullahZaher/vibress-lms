@@ -1,6 +1,6 @@
 # Vibress LMS — professional implementation roadmap
 
-**Status:** PROPOSED, not started.  
+**Status:** ACCEPTED IMPLEMENTATION SEQUENCE, not started. See [RFC approval](RFC_APPROVAL.md).  
 **Critical dependency:** Vibress external plugin platform EXT tickets in [core roadmap](https://github.com/AbdullahZaher/vibress/blob/docs/external-plugin-platform-plan-20261019/docs/08-plugins/external-extensions-roadmap.md).  
 **Delivery model:** additive, independent versioned releases; no core-specific LMS patches, no unverified runtime interfaces. Milestones are dependency gates, not date promises.
 
@@ -129,4 +129,4 @@ These are review and acceptance dependencies, **not completed code**.
 
 ### Next authorized engineering step
 
-After these documents are reviewed: file EXT-001..004 in Vibress, publish an approved host contract fixture, then implement **LMS-101** in this repo. Do not implement against speculative mock SDK exports.
+RFC architecture is [accepted for implementation](RFC_APPROVAL.md). Begin core `EXT-001..004` targeted engineering and LMS `LMS-001..004` prerequisite decisions in parallel. Start executable `LMS-101` **only after** the host has admitted a real externally built SDK fixture, authoritative Member scope and typed repositories, and minimal Studio/Web extension surfaces are implemented and tested. Do not implement against speculative mock SDK exports or claim `EXT-501` is a prerequisite to its own LMS pilot.

@@ -1,6 +1,6 @@
 # LMS ↔ Vibress host integration contract
 
-**Status: PROPOSED; unavailable on Vibress main as of 2026-10-19.**  
+**Status: ARCHITECTURE DIRECTION ACCEPTED; exact SDK/API integration contracts remain provisional and unavailable on Vibress main as of 2026-10-19.** [RFC approval](RFC_APPROVAL.md).  
 Do not compile against example signatures until the platform's versioned plugin SDK and conformance suite are published.
 
 ## 1. Existing core capabilities (confirmed)

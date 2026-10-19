@@ -1,6 +1,6 @@
 # Vibress LMS — security threat model and operations
 
-**Status: PROPOSED controls.** A credible external-plugin security boundary does not exist yet for unknown/untrusted JS code; only vetted operator-installed code is admissible in the initial platform release.
+**Status: ACCEPTED DESIGN CONTROLS — not yet implemented/tested.** A credible external-plugin security boundary does not exist yet for unknown/untrusted JS code; only vetted operator-installed code is admissible in the initial platform release.
 
 ## 1. Assets and adversaries
 

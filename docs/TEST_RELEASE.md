@@ -1,6 +1,6 @@
 # Vibress LMS — test, verification and release strategy
 
-**Status: PROPOSED; no test suite has been executed in this documentation-only repository.** The executable package, migrations and CI are planned in [roadmap](IMPLEMENTATION_ROADMAP.md).
+**Status: ACCEPTED RELEASE TEST PLAN; no test suite has been executed in this documentation-only repository.** The executable package, migrations and CI are planned in [roadmap](IMPLEMENTATION_ROADMAP.md).
 
 ## 1. Testing pyramid
 

@@ -1,6 +1,6 @@
 # Product requirements — Vibress LMS
 
-**Status:** PROPOSED / design baseline 2026-10-19.  
+**Status:** MVP product scope accepted as planning baseline (2026-10-19), **not implemented**. Advanced Pro and one-time commerce scope remains separately proposed. [RFC approval](RFC_APPROVAL.md).  
 **Product:** independent CMS extension; intended deployments include multilingual and Arabic/RTL publications with real paying learners.  
 **Success condition:** the same independently built LMS package supports multiple isolated Vibress publications and themes, survives upgrades and protects every learner and course boundary.
 

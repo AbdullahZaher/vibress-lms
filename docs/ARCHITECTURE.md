@@ -1,6 +1,6 @@
 # Vibress LMS — system architecture
 
-**Status: PROPOSED, dependent on not-yet-implemented Vibress external extension host.**
+**Status: ACCEPTED ARCHITECTURAL DIRECTION — not implemented and dependent on not-yet-implemented Vibress external extension host.** [RFC approval](RFC_APPROVAL.md).
 
 ## 1. Deployment boundary
 

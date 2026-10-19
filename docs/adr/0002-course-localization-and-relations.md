@@ -1,6 +1,6 @@
 # ADR-0002 — Stable course identity, localized content and relational integrity
 
-**Status: PROPOSED / required before LMS-102.** Date: 2026-10-19.
+**Status: Accepted design invariants / required before LMS-102; exact PostgreSQL DDL and migrations remain to be reviewed.** [RFC approval](../RFC_APPROVAL.md). Date: 2026-10-19.
 
 ## Problem
 
@@ -60,4 +60,4 @@ UNIQUE (publication_id, course_id, lesson_id, locale); -- lesson translation
 - Inserted translations/shared assets referencing another course or publication fail their composite FK; reusing an authorized media grant in another locale/course/member fails.
 - Fresh install, populated upgrade, partial migration failure/retry, large-table index validation, disable/re-enable and recovery retain learners' records.
 
-**Owner:** Architect, Security, DB/Migration, API, i18n/RTL, QA. This ADR is not an approved implementation contract until signed off.
+**Owner/review roles:** Architect, Security, DB/Migration, API, i18n/RTL, QA. This ADR accepts identity/translation/integrity design only. The exact table definitions, SQL, runtime schema/permissions and production verification remain subject to independent implementation reviews and signoff; no code migration has been applied.

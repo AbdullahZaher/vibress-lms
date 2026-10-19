@@ -1,6 +1,6 @@
 # Vibress LMS — logical data model and migration policy
 
-**Status: PROPOSED.** SQL below illustrates invariants, not an applied Drizzle schema/migration. Host-owned migration/data service must be implemented and approved first.
+**Status: ACCEPTED DATA MODEL INVARIANTS; concrete Drizzle tables/SQL and migration remain unapproved and unimplemented.** [ADR-0002](adr/0002-course-localization-and-relations.md). SQL below illustrates invariants, not an applied Drizzle schema/migration. Host-owned migration/data service must be implemented and approved first.
 
 ## 1. Storage ownership decision
 

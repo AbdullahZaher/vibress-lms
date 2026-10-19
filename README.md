@@ -1,6 +1,6 @@
 # Vibress LMS
 
-**Status: PLANNING ONLY — no LMS runtime, routes, migrations or packages implemented.**  
+**Status: ARCHITECTURE ACCEPTED FOR IMPLEMENTATION — still PLANNING ONLY; no LMS runtime, routes, migrations or packages implemented.** [RFC approval](docs/RFC_APPROVAL.md).  
 **Design baseline:** 2026-10-19.  
 **Repository:** private and independently versioned from [Vibress core](https://github.com/AbdullahZaher/vibress).  
 **Proposed product:** self-hostable, publication-aware learning management extension, with Arabic/RTL and English support, inspired by the capability class of commercial WordPress LMS products. This is not affiliated with Tutor LMS.
@@ -15,6 +15,7 @@ Allow a Vibress publication to create courses/lessons, enroll learners using exi
 
 | Document | Purpose |
 | --- | --- |
+| [RFC review and architectural approval](docs/RFC_APPROVAL.md) | Decisions accepted for implementation, deferred public contracts and release gates |
 | [Product requirements](docs/PRODUCT_REQUIREMENTS.md) | Actors, use cases, MVP vs Pro, non-functional criteria |
 | [Architecture](docs/ARCHITECTURE.md) | Components, boundaries, data flow, rendering, self-hosting |
 | [Integration contracts](docs/INTEGRATION_CONTRACTS.md) | **Proposed** host APIs, capability dependencies and compatibility |
@@ -26,7 +27,7 @@ Allow a Vibress publication to create courses/lessons, enroll learners using exi
 | [Test and release strategy](docs/TEST_RELEASE.md) | Automated matrix, upgrade paths and release checklist |
 | [ADR 0001](docs/adr/0001-extension-boundary.md) | Trusted extension boundary and rejected alternatives |
 
-Core platform proposals (on a separate Vibress docs branch at time of writing): [Plugin platform architecture](https://github.com/AbdullahZaher/vibress/blob/docs/external-plugin-platform-plan-20261019/docs/08-plugins/external-extensions-architecture.md), [contracts](https://github.com/AbdullahZaher/vibress/blob/docs/external-plugin-platform-plan-20261019/docs/08-plugins/external-extensions-contracts.md), and [roadmap](https://github.com/AbdullahZaher/vibress/blob/docs/external-plugin-platform-plan-20261019/docs/08-plugins/external-extensions-roadmap.md). These are draft links, not yet stable merged specifications.
+Core platform architecture **accepted for implementation on a separate docs branch (not merged or shipped)**: [Plugin platform architecture](https://github.com/AbdullahZaher/vibress/blob/docs/external-plugin-platform-plan-20261019/docs/08-plugins/external-extensions-architecture.md), [contracts](https://github.com/AbdullahZaher/vibress/blob/docs/external-plugin-platform-plan-20261019/docs/08-plugins/external-extensions-contracts.md), and [roadmap](https://github.com/AbdullahZaher/vibress/blob/docs/external-plugin-platform-plan-20261019/docs/08-plugins/external-extensions-roadmap.md). These are draft links, not yet stable merged specifications.
 
 The planned [Vibress typed storage/runtime validation contract](https://github.com/AbdullahZaher/vibress/blob/docs/external-plugin-platform-plan-20261019/docs/08-plugins/external-extensions-storage-contract.md) is a proposed public SDK design, **not a callable API**. Studio course navigation uses registered `adminViewId`, not public course URLs. Trusted in-process code is not isolated against fatal crashes; a production hard-isolation promise needs a supervised process/container design.
 
