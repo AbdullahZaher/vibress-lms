@@ -19,6 +19,8 @@ Allow a Vibress publication to create courses/lessons, enroll learners using exi
 | [Architecture](docs/ARCHITECTURE.md) | Components, boundaries, data flow, rendering, self-hosting |
 | [Integration contracts](docs/INTEGRATION_CONTRACTS.md) | **Proposed** host APIs, capability dependencies and compatibility |
 | [Data model](docs/DATA_MODEL.md) | Plugin-owned PostgreSQL tables, consistency, migrations and retention |
+| [Canonical course identity, locale and FK ADR](docs/adr/0002-course-localization-and-relations.md) | Same-course constraints and stable translations/progress |
+| [Pro licensing vs learner entitlements](docs/LICENSING_AND_ENTITLEMENTS.md) | Separate optional paid-feature license from student access |
 | [Security and operations](docs/SECURITY_OPERATIONS.md) | Tenant isolation, auth, paid media, threats, backups, incident response |
 | [Implementation roadmap](docs/IMPLEMENTATION_ROADMAP.md) | Vertical slice, waves, tickets, dependencies and acceptance gates |
 | [Test and release strategy](docs/TEST_RELEASE.md) | Automated matrix, upgrade paths and release checklist |
@@ -38,11 +40,11 @@ No runtime build/test commands are prescribed yet because no executable project 
 ## Design principles
 
 - Existing Staff and Member identities are different principals. No direct core DB, Staff sessions, billing secrets or private imports.
-- All course/enrollment/progress records are publication-scoped; IDs do not authorize access.
+- All course/enrollment/progress records are publication-scoped; IDs do not authorize access. A Member session must match host-resolved publication; course-section-lesson-enrollment-progress links require same-course composite keys.
 - Editorial catalog may reuse Content Modeler via a documented API; private lessons, answer keys, gradebook and progress remain under protected LMS domain ownership.
 - Core Billing remains source of payment/subscription truth; enrollment and course entitlements are separately checked by LMS. One-time purchases are **not assumed** supported by existing recurring subscription APIs.
 - Disable/uninstall preserve learner records by default; upgrade and restores are operational contracts.
-- Arabic, RTL, keyboard, accessible media controls, SEO and safe localization are release criteria, not enhancements.
+- Arabic, RTL, keyboard, accessible media controls, SEO and safe localization are release criteria, not enhancements. One canonical course/lesson ID owns all translated variants without resetting student progress. LMS Pro licensing is separate from paid-course entitlement and requires later approval.
 
 ## Team process
 

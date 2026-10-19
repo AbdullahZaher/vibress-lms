@@ -11,11 +11,11 @@ LMS requires course authoring, enrollment, progress, protected lessons, assessme
 
 - Develop LMS in the **separate** `AbdullahZaher/vibress-lms` repo, versioned independently.
 - Vibress maintains an operator-installed **trusted plugin host** with explicit SDK/service boundaries. The LMS imports only public SDK contracts; host controls publication/principal authorization, routing and plugin installation.
-- LMS owns a namespaced dataset and migrations with host-controlled upgrade lifecycle. Core maintains identity, payment/subscription truth and platform operations. No direct private Drizzle/domain imports.
+- LMS owns a namespaced dataset and migrations with host-controlled upgrade lifecycle. Same-publication **and same-course** relations, locale-independent course IDs, and translation slugs follow [ADR-0002](0002-course-localization-and-relations.md). Core maintains identity, payment/subscription truth and platform operations. No direct private Drizzle/domain imports.
 - In-process plugin code is **trusted/audited**, not sandboxed. Unknown publisher code requires separate runtime isolation design and is rejected in this architecture.
 - Use reserved public route namespace initially with SEO-aware default renderer and optional approved theme slots; no changes to every installed theme.
 - Keep activation per publication and preserve learner data on disable/uninstall.
-- Defer one-time payments until there is an explicit provider-neutral core extension contract.
+- Defer one-time payments until there is an explicit provider-neutral core extension contract. Commercial Pro licensing has a [separate offline/self-hosting proposal](../LICENSING_AND_ENTITLEMENTS.md) and cannot substitute for learner course entitlement.
 
 ## Alternatives and consequences
 
@@ -27,6 +27,6 @@ LMS requires course authoring, enrollment, progress, protected lessons, assessme
 
 ## Conditions for acceptance
 
-Platform EXT-0xx contracts + threat model approved, independent package installs without core edits, protected member lesson and course admin pass two-publication tests, upgrade/backups and RTL/theme fallback verified. Then promote this ADR to Accepted with commit links, contract versions and real validation evidence.
+Platform EXT-0xx contracts + threat model approved (dual SDK adapter, Member/publication binding, typed repositories, final-archive detached digest, Admin/Web/Worker loader), independent package installs without core edits, protected member lesson and course admin pass two-publication tests, upgrade/backups and RTL/theme fallback verified. Then promote this ADR to Accepted with commit links, contract versions and real validation evidence.
 
 Related: [architecture](../ARCHITECTURE.md), [integration prerequisites](../INTEGRATION_CONTRACTS.md), [roadmap](../IMPLEMENTATION_ROADMAP.md).

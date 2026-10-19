@@ -19,14 +19,14 @@
 ### Auth / isolation
 
 - Staff owner/editor with and without LMS permission; visitor, Member, disabled Member, invalid member session, machine credentials and forged cookies.
-- Publication A vs B with deliberately identical course slug and member-like identifiers; access must be scoped to authoritative context.
+- Publication A vs B with deliberately identical course slug and member-like identifiers; access must be scoped to authoritative context. **A valid Member B session MUST be denied on A's site**, even when no tenant ID is supplied.
 - Anonymous cannot read draft course, protected lesson, answer keys, enrollment roster or video secret via direct API, SSR payload, search, theme Liquid or cache.
 - Role spoofing by request body/header cannot alter scope; malicious published content cannot XSS admin/student page.
 - Disabled plugin cannot receive API request, route render or newly enqueued job.
 
 ### Consistency / failure
 
-- Parallel identical enrollments → one enrollment; parallel completion → one completed state.
+- Parallel identical enrollments → one enrollment and append-only status history; parallel completion → one completed state. Enforced database + API rejection of a lesson linked to another course's section, or progress pairing an enrollment/lesson from different courses **within the same publication**.
 - Timeout/retry/out-of-order event → no duplicate change or student notification.
 - Course republish and curriculum edits preserve historical progress according to published policy.
 - Invalid migration, partial failure, double-run, concurrent activation, older-schema upgrade, restored DB + media.
@@ -34,7 +34,7 @@
 
 ### Global UI and SEO
 
-- Arabic RTL, English LTR, mixed English digits and Arabic text; labels, error messages, long translations and BCP-47 fallback.
+- Arabic RTL, English LTR, mixed English digits and Arabic text; one canonical course/lesson ID across locales, student enrollment/progress preserved while switching languages, labels, error messages, long translations and BCP-47 fallback.
 - Keyboard-only navigation through lesson list, buttons, dialogs, media player and quizzes; focus preservation and screen-reader output.
 - Mobile/narrow view, zoom/reflow, dark/light themes; built-in and external Liquid theme fallback.
 - Canonical/hreflang and published-course metadata; protected lessons not indexed, no leaked meta tags.
@@ -46,7 +46,7 @@
 3. Host consumer conformance run against minimum and latest supported SDK major/minor.
 4. Ephemeral Postgres/Redis tests: fresh, legacy fixture upgrade, migration recovery and two-publication isolation.
 5. API integration and Playwright web/admin/portal flows, including RTL and accessibility checks.
-6. Reproducible operator package build, artifact digest verify and audited dependencies.
+6. Reproducible operator package build, **SHA-256 of final archive verified against separately trusted release metadata**, pinned Admin/Web assets and audited dependencies.
 7. Docker-based install/run/upgrade/disable/restore smoke; release staged only after independent host and LMS CI green.
 
 Never label a check as passed without running it. Include test command, environment, build SHA and failures in release record.
@@ -64,7 +64,11 @@ Never label a check as passed without running it. Include test command, environm
 
 - [ ] Published host API stable and all required capabilities implemented.
 - [ ] Trusted package checksum/signature/allowlist verified in production image.
-- [ ] Two-publication cross-read/write negative tests green.
+- [ ] Two-publication cross-read/write tests green, including valid Member B session denied on A.
+- [ ] Same-course composite FK rejection, translations/locale switch preserve enrollment/progress.
+- [ ] Canonical vs alternate SDK adapter policy and real event/deactivate lifecycle tests green.
+- [ ] Trusted external archive checksum, content-addressed Admin/Web assets and Worker admission green.
+- [ ] Before Pro release: offline/expiry signed feature claims independently tested from learner billing access.
 - [ ] Staff/Member/anonymous distinctions and origin/CSRF enforced.
 - [ ] Protected lesson/media/quiz answer privacy suite green.
 - [ ] Fresh install, existing data upgrade, backup and restore exercised.

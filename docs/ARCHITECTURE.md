@@ -55,11 +55,11 @@ Follow the host's public packages and tooling; this tree is a proposed layout, n
 
 ### Course/content
 
-Store protected course/lesson data in the LMS-owned schema to keep atomic access control and avoid accidentally publishing data via public content collections. If editorial catalog uses Content Modeler, link course to a publication-scoped content entry via host-mediated documented service; do not require raw Drizzle access, and make catalog projection explicit and fail-closed. Draft → published → archived; unpublished lesson references remain private.
+Store protected course/lesson data in the LMS-owned schema to keep atomic access control and avoid accidentally publishing data via public content collections. Course/section/lesson IDs are **stable across locales**; translation tables own locale-specific slugs/content. Section-to-course, lesson-to-section/course, and progress-to-enrollment/lesson use matching `(publication_id, course_id, ...)` composite candidate keys and FKs; see [ADR-0002](adr/0002-course-localization-and-relations.md). If editorial catalog uses Content Modeler, link course to a publication-scoped content entry via host-mediated documented service; do not require raw Drizzle access, and make catalog projection explicit and fail-closed. Draft → published → archived; unpublished lesson references remain private.
 
 ### Enrollment and learner identity
 
-A Member is not Staff. Every learner mutation uses `memberId` from a verified Member session and `publicationId` from host context. Enrollment unique across (publication, course, member). Enrollment can be revoked/suspended while progress remains auditably stored. Cross-publication slugs and IDs must return not-found, not disclose the owner's publication.
+A Member is not Staff. Every learner mutation uses `memberId` from verified Member session and `publicationId` from host context **only after** the host checks `member.publicationId === independently resolved site publicationId`. General `requireMemberSession` does not enforce that equality by itself. Enrollment unique across (publication, course, member). Enrollment can be revoked/suspended while progress remains auditably stored. Cross-publication slugs and IDs must return not-found, not disclose the owner's publication.
 
 ### Entitlement
 
@@ -75,7 +75,7 @@ Use idempotent completion writes and transactions; all attempt timestamps and gr
 - **Public web:** reserved `/extensions/vibress-lms/...` route until core collision-free aliases are approved; published SEO-safe course catalog and detail pages. Platform theme/locale contracts + accessible fallback first.
 - **Learner:** Member API and course dashboard, protected lesson SSR/view model with no-cache/private policy. Serve private media only through server-authorized short-lived grants.
 - **Theme integration:** optional course card, catalog/detail slots with sanitized localized data. Never mandate modifications to existing themes.
-- **i18n:** honor enabled locales and publication primary locale, BCP-47, mixed-direction text, Arabic RTL, accessible translated strings.
+- **i18n:** honor enabled locales and publication primary locale, BCP-47, mixed-direction text, Arabic RTL, accessible translated strings. Slugs and metadata belong to translation rows; enrollments and progress refer to locale-independent IDs.
 
 ## 6. Events and integrations
 
@@ -95,7 +95,7 @@ Use durable event IDs and idempotent processing; event payload includes authorit
 - Disable/re-enable retains data, blocks new work, drains existing jobs and fails safely on unfinished migration.
 - Backup/restore includes course data, learner data, restricted assets and encryption secrets, plus pinned plugin artifact version.
 - Observe requests/jobs by requestId, publicationId, courseId (where safe) and release version; redact PII and avoid high-cardinality telemetry dimensions.
-- Deploy under Docker/reverse proxy with deterministic packages and documented env requirements; no mandatory licensed proprietary service.
+- Deploy under Docker/reverse proxy with deterministic **externally digest-pinned final archives**, content-addressed Admin/Web assets, CSP and worker rollout contract; no mandatory licensed proprietary service for the free LMS. Pro licensing, if introduced, is a [separate operator decision](LICENSING_AND_ENTITLEMENTS.md), never proof of student payment.
 
 ## 8. Design decisions requiring explicit approval
 
@@ -105,5 +105,8 @@ Use durable event IDs and idempotent processing; event payload includes authorit
 4. Commerce access rules and one-time purchasing after existing subscription integration.
 5. Reserved vs vanity URLs and how Next.js host resolves them.
 6. Optional video delivery adapter and signed playback/token revocation story.
+7. Canonical `plugin-sdk` versus alternate `plugin-core` ABI, event/deactivate semantics, adapter/version policy.
+8. Detached package digest and Admin/Web/Worker asset, SSR privacy, multi-replica and disablement behavior.
+9. Same-course composite FK schema, stable translations, and license-vs-course-entitlement policy.
 
 Related: [host integration](INTEGRATION_CONTRACTS.md), [data model](DATA_MODEL.md), [ADR](adr/0001-extension-boundary.md).

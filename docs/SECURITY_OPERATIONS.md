@@ -22,7 +22,7 @@ Threats: anonymous access, learners accessing others' data, malicious course edi
 | Install/upgrade package | Operator | Vetted artifact, release admission, audited deployment |
 | Purge LMS records | Explicit privileged action | Backup/export, confirmation, separate audit from ordinary uninstall |
 
-- Use authoritative host `publicationId`, not request-provided tenant ID. Every query and unique key includes publication context. A resource ID alone never grants rights.
+- Use authoritative host `publicationId`, not request-provided tenant ID. For Member calls verify `member.publicationId === independently host-resolved publicationId`; `requireMemberSession` alone is insufficient. Section/lesson/enrollment/progress must belong to the same **course** through composite FK **and** domain checks. Every query and unique key includes publication context. A resource ID alone never grants rights.
 - Member and Staff are distinct; an email match does not unite sessions. Unauthenticated should fail 401; unauthorized 403 or privacy-preserving 404 according to endpoint policy.
 - Session cookies are HttpOnly/Secure/SameSite per host policy, with validated origin/CSRF for mutations. Strong rate limiting on enrollment, quiz attempts and video grants.
 - Machine-to-machine service and webhooks use scoped signed credentials; never log bearer tokens, signatures or full student payloads.
@@ -57,7 +57,7 @@ Sanitize rich HTML and localized content; forbid arbitrary scripts in lesson doc
 
 ## 5. Deployment and recovery
 
-- Image-based, checksum-pinned trusted package. Docker volumes for private storage, PostgreSQL/Redis configured by Vibress operator. No mandatory external LMS SaaS.
+- Image-based, operator-approved trusted package: compute SHA-256 over final immutable archive bytes and verify against an **external trusted release lockfile or detached signed envelope**, never self-claimed internal archive checksum. Docker volumes for private storage, PostgreSQL/Redis configured by Vibress operator. No mandatory external LMS SaaS.
 - Startup: preflight artifacts, compare host API compatibility, scan migration head, check reserved route collisions, refuse unsafe enablement.
 - Migration: staging clone with production-like data, snapshot/backup, lock budget, additive change, canary publication.
 - Rollback: only previous binary if schema remains backward compatible. Otherwise forward-fix or restore verified backup of LMS + core state together; reconcile durable events.
@@ -65,13 +65,19 @@ Sanitize rich HTML and localized content; forbid arbitrary scripts in lesson doc
 - Audit package install, activation, course publish, enrollment override, manual grading, certificate revocation and data purge.
 - Observability: request/trace ID, publication scope (internal), latency/error code, queue depth and migration state. Anonymize learner identities in metrics.
 
-## 6. Mandatory security suite
+## 6. Licensing, locale and route privacy risks
+
+LMS Pro feature licensing is distinct from learners' course payment entitlements. A Pro license does not grant course access or bypass Staff/Member permissions; expired/invalid Pro claims never erase courses, grades or progress. Offline/self-hosted operation and outage/grace need explicit policy before commercialization. See [license and entitlement RFC](LICENSING_AND_ENTITLEMENTS.md).
+
+Locale variants share canonical IDs, preserving progress. Translated slugs or fallback cannot expose unpublished/private lessons, answer keys or wrong-publication content. Extension route prefixes need explicit site privacy controls: the existing public-content privacy hook is not automatically applied to new routes. Protected learner SSR and caches default to private/no-store.
+
+## 7. Mandatory security suite
 
 - Anonymous and missing origin tests; forged staff/member cookies; student can't impersonate another; reviewer cannot edit course.
 - Read/write wrong-publication all routes, jobs, migrations, media tokens; private content absent from public catalog/search/cache.
 - Race tests for enrollment, lesson completion and quiz submission; duplicate/out-of-order events.
 - Stored XSS via titles/translations, file/path traversal, unsafe redirects, SSRF, CSP/clickjacking.
-- Artifact checksum tamper, unsigned code attempt, unknown declared capability, SDK mismatch.
+- Tampered final archive/invalid detached digest, unsigned code attempt, unknown capability, both plugin SDK ABI shapes/mismatches, named event dispatch and deactivation cleanup.
 - Upgrade mid-flight, backup/restore with legacy records, disabled state with active queue.
 - Arabic RTL + keyboard, captions and accessible error/status announcements.
 
