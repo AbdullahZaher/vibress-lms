@@ -9,7 +9,7 @@
 
 ## Implementation snapshot (2026-10-20)
 
-A small, executable **host-agnostic domain module** now exists in `src/domain/`: publication-scoped public course projection, guarded free-lesson access, paid-access fail-closed policy, locale-specific protected lesson references, course progress and duplicate completion classification. See [implementation status](docs/IMPLEMENTATION_STATUS.md).
+A small, executable **host-agnostic domain module** now exists in `src/domain/`: publication-scoped public course projection, guarded free-lesson access, paid-access fail-closed policy, course publishing checks (sections and published translations), safe free-enrollment decisions, locale-specific protected lesson references, course progress and duplicate completion classification. See [implementation status](docs/IMPLEMENTATION_STATUS.md).
 
 Run `npm install` then `npm run typecheck` and `npm test` (Node >=22). **No host adapter, plugin manifest, migrations, persistent enrollment, API route, Studio page, or protected media delivery exists yet.** Domain-level `VerifiedMemberScope` is an input contract, **not proof of authentication**; the host must authenticate and independently match the Member to the resolved publication.
 
