@@ -44,7 +44,7 @@ The planned [Vibress typed storage/runtime validation contract](https://github.c
 3. **LMS MVP:** sections, lessons, enrollment, progress, essential admin/learner UX, translation-ready pages, data and recovery tests.
 4. **LMS Pro:** assessments, advanced instructor workflows, certificates, reports, paid access integrations, lifecycle automation after independent approval.
 
-No runtime build/test commands are prescribed yet because no executable project exists. Establish the package skeleton only after host contract approval; never create deceptive empty CI checks that claim a working implementation.
+The pure domain module has real build and unit-test commands. Creating an installable plugin manifest/host integration remains blocked until the host contracts are approved and tested; do not create fake integration checks.
 
 ## Design principles
 
@@ -59,4 +59,4 @@ No runtime build/test commands are prescribed yet because no executable project 
 
 Every nontrivial ticket begins with relevant Architect/Security/DB/API/Plugin-Theme/i18n/QA roles, then a scoped implementation plan. Protect backward compatibility with old persisted data and deployed themes. Apply least privilege and shared runtime validation. Finish with tests, diff inspection, compatibility notes, operator docs and an explicit blocker list.
 
-**وثائق المشروع:** هذا المستودع يحتوي حالياً على التصميم والخطة فقط. لن تكون الإضافة قابلة للتثبيت أو الاستخدام حتى يكتمل نظام الإضافات الخارجية في Vibress وتنجح اختبارات الدمج.
+**حالة المشروع:** أُنجزت طبقة منطق الدورات والتقدم الدراسي واختباراتها الأولية، لكن الإضافة ليست جاهزة للتثبيت أو الاستخدام الفعلي. يلزم اكتمال واجهات الإضافات الخارجية والتخزين الآمن واختبارات الدمج أولاً.
