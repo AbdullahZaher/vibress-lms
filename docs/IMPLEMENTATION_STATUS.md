@@ -57,6 +57,12 @@ Source: `src/domain/course-publication.ts` and `src/domain/enrollment.ts`. Tests
 
 The newly created GitHub Actions workflow currently reports FAILURE before assignment to a runner: the run's job has zero steps, no runner ID and no usable job logs. This is **CI infrastructure/configuration blocking execution**, not evidence that the SQL passed or failed. No live PostgreSQL integrity run is claimed. [Example failed workflow](https://github.com/AbdullahZaher/vibress-lms/actions/runs/39382195660). After runner availability is restored, re-run and diagnose actual tests before approval.
 
+## Offline validation alternative (2026-10-20)
+
+The repository now provides `npm run lint` (strict compiler-based checks, **not ESLint**) and `npm run verify:local` (lint, typecheck, build and unit tests). The complete command was executed locally and **passed 26/26 Node tests** on Node 22.16.0 / TypeScript 5.8.3. Source/test Git blob hashes matched the GitHub branch at verification.
+
+See [local verification record](LOCAL_VERIFICATION.md). GitHub Actions is not currently usable; failed runs allocate no runner and contain no executed steps. The PostgreSQL integrity/upgrade suite was not executed in this environment and remains a release blocker. **Passing local tests must not be treated as migration acceptance.**
+
 ## Next gated steps
 
 1. Have core complete/review host typed scoped storage, authoritative Member and entitlement facades, migration ledger, and stable route response validation.
