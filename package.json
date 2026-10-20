@@ -1,0 +1,14 @@
+{
+  "name": "@vibress/lms",
+  "version": "0.1.0-dev.0",
+  "private": true,
+  "type": "module",
+  "description": "Vibress LMS domain foundation; not an installable extension",
+  "engines": { "node": ">=22" },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "npm run build && node --test test/*.test.mjs"
+  },
+  "devDependencies": { "typescript": "^5.5.3" }
+}
