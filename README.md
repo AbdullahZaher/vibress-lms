@@ -13,6 +13,10 @@ A small, executable **host-agnostic domain module** now exists in `src/domain/`:
 
 Run `npm install` then `npm run typecheck` and `npm test` (Node >=22). **No host adapter, plugin manifest, migrations, persistent enrollment, API route, Studio page, or protected media delivery exists yet.** Domain-level `VerifiedMemberScope` is an input contract, **not proof of authentication**; the host must authenticate and independently match the Member to the resolved publication.
 
+## Database migration candidate
+
+LMS-102 includes a review-only, forward-only [PostgreSQL schema proposal](migrations/0001_initial.sql), [upgrade/security notes](docs/MIGRATION_0001.md), and a disposable PostgreSQL integrity fixture (`npm run test:db`). **Do not apply it to production or import database internals**: Vibress core must first implement and approve EXT-203's migration runner and typed repositories.
+
 ## Product objective
 
 Allow a Vibress publication to create courses/lessons, enroll learners using existing **Member** identity, protect lesson media and content, track progress, and later support quizzes, instructor workflows, certificates, paid access, analytics and API clients — without modifying Vibress core per LMS feature or importing private packages.
