@@ -16,3 +16,11 @@ export type {
   LessonCompletion,
   VerifiedMemberScope,
 } from "./domain/types.js";
+export { decideCoursePublication } from "./domain/course-publication.js";
+export type {
+  CourseSection,
+  CoursePublicationDecision,
+  PublicationRejection,
+} from "./domain/course-publication.js";
+export { decideFreeEnrollment } from "./domain/enrollment.js";
+export type { FreeEnrollmentDecision } from "./domain/enrollment.js";
