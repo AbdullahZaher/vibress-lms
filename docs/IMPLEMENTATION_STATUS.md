@@ -46,6 +46,13 @@ Source: `src/domain/course-publication.ts` and `src/domain/enrollment.ts`. Tests
 
 **Local validation:** Node 22.16.0, global TypeScript 5.8.3, `npm run typecheck` passed; `npm test` passed 26/26. Full PostgreSQL/CI/host conformance remain unrun, and `npm install` could not be exercised in the offline execution environment.
 
+## LMS-102: candidate schema and PostgreSQL checks (2026-10-20)
+
+- Added [SQL proposal](../migrations/0001_initial.sql) and [migration/upgrade review](MIGRATION_0001.md): course, course/section/lesson translations, sections, lessons, enrollments and lesson progress.
+- Compound foreign keys enforce publication and course equality; course/student-enrollment and progress duplicates are guarded by PostgreSQL UNIQUE constraints. Existing Member ownership is still a host responsibility.
+- Added a guarded [disposable PostgreSQL test script](../scripts/test-postgres.sh), fixture and adversarial SQL assertions and a GitHub Actions PostgreSQL 16 test job.
+- **Not yet production accepted:** the SQL has no EXT-203 migration ledger, data API or host registration. No integration with the real Vibress members API, operator deployment or restore run was claimed. CI outcomes must be reviewed separately.
+
 ## Next gated steps
 
 1. Have core complete/review host typed scoped storage, authoritative Member and entitlement facades, migration ledger, and stable route response validation.
