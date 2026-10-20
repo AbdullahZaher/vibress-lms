@@ -1,11 +1,17 @@
 # Vibress LMS
 
-**Status: ARCHITECTURE ACCEPTED FOR IMPLEMENTATION — still PLANNING ONLY; no LMS runtime, routes, migrations or packages implemented.** [RFC approval](docs/RFC_APPROVAL.md).  
+**Status: LMS domain foundation implemented (pre-integration), NOT INSTALLABLE OR PRODUCTION READY.** [RFC approval](docs/RFC_APPROVAL.md).  
 **Design baseline:** 2026-10-19.  
 **Repository:** private and independently versioned from [Vibress core](https://github.com/AbdullahZaher/vibress).  
 **Proposed product:** self-hostable, publication-aware learning management extension, with Arabic/RTL and English support, inspired by the capability class of commercial WordPress LMS products. This is not affiliated with Tutor LMS.
 
 > **Important:** Vibress `main` currently has a trusted bundled-plugin SDK/host, but **does not yet** install and run independent external packages, register plugin-owned routes/UI or execute plugin-owned migrations. All extension interface examples in this repository are **proposals**, not working current APIs. Do not ship the LMS until the host compatibility and security gates are implemented and independently verified.
+
+## Implementation snapshot (2026-10-20)
+
+A small, executable **host-agnostic domain module** now exists in `src/domain/`: publication-scoped public course projection, guarded free-lesson access, paid-access fail-closed policy, locale-specific protected lesson references, course progress and duplicate completion classification. See [implementation status](docs/IMPLEMENTATION_STATUS.md).
+
+Run `npm install` then `npm run typecheck` and `npm test` (Node >=22). **No host adapter, plugin manifest, migrations, persistent enrollment, API route, Studio page, or protected media delivery exists yet.** Domain-level `VerifiedMemberScope` is an input contract, **not proof of authentication**; the host must authenticate and independently match the Member to the resolved publication.
 
 ## Product objective
 
