@@ -23,7 +23,7 @@
 
 These functions **do not authenticate callers**; `VerifiedMemberScope` is only a type indicating expected **host-verified input**. An API handler must obtain Member and publication from independent authoritative host resolvers, check equality, validate external input at runtime, and enforce origin/CSRF policy. Never trust client-provided IDs, `isPaid`, or self-asserted roles. Raw private media references returned to authorized server logic are **not download grants**.
 
-`decideCoursePublication` does not publish content, and `decideFreeEnrollment` does not persist enrollments. Both require host-validated payloads, independently verified authority-bound publication/session identity, scoped transactions and durable unique constraints. A repeated eligible decision is not database-level idempotency. `decideLessonCompletion` does not write progress. A future host-mediated transaction and UNIQUE(publication_id,course_id,enrollment_id,lesson_id) constraint must enforce concurrency safety and idempotency. `calculateCourseProgress` describes the current published required curriculum revision, not a durable completion certificate. No speculative SQL migration, direct core DB access, plugin manifest, routes, feature claims, or fake worker was added.
+`decideCoursePublication` does not publish content, and `decideFreeEnrollment` does not persist enrollments. Both require host-validated payloads, independently verified authority-bound publication/session identity, scoped transactions and durable unique constraints. A repeated eligible decision is not database-level idempotency. `decideLessonCompletion` does not write progress. A future host-mediated transaction and UNIQUE(publication_id,course_id,enrollment_id,lesson_id) constraint must enforce concurrency safety and idempotency. `calculateCourseProgress` describes the current published required curriculum revision, not a durable completion certificate. A standalone, unregistered candidate migration is now present for review; it is NOT applied by the host. No direct core DB access, plugin manifest, routes, feature claims, or fake worker was added.
 
 ## Local verification
 
@@ -53,11 +53,15 @@ Source: `src/domain/course-publication.ts` and `src/domain/enrollment.ts`. Tests
 - Added a guarded [disposable PostgreSQL test script](../scripts/test-postgres.sh), fixture and adversarial SQL assertions and a GitHub Actions PostgreSQL 16 test job.
 - **Not yet production accepted:** the SQL has no EXT-203 migration ledger, data API or host registration. No integration with the real Vibress members API, operator deployment or restore run was claimed. CI outcomes must be reviewed separately.
 
+## CI investigation (2026-10-20)
+
+The newly created GitHub Actions workflow currently reports FAILURE before assignment to a runner: the run's job has zero steps, no runner ID and no usable job logs. This is **CI infrastructure/configuration blocking execution**, not evidence that the SQL passed or failed. No live PostgreSQL integrity run is claimed. [Example failed workflow](https://github.com/AbdullahZaher/vibress-lms/actions/runs/39382195660). After runner availability is restored, re-run and diagnose actual tests before approval.
+
 ## Next gated steps
 
 1. Have core complete/review host typed scoped storage, authoritative Member and entitlement facades, migration ledger, and stable route response validation.
 2. Build public-SDK-only install fixture/manifest and exercise actual host admission, activation, per-publication disablement and schema negotiation.
-3. Add separately reviewed namespaced course/section/lesson/enrollment/progress migration, same-publication and same-course composite constraints, populated upgrade and restore tests.
+3. Have the candidate 0001 migration reviewed against a running PostgreSQL instance and the actual EXT-203 host runner; complete populated-upgrade, replay/recovery, concurrent-instance and restore tests.
 4. Implement staff course publishing, member enrollment and secured locale-aware lesson routes, plus Studio/Web UI with RTL, accessibility, SEO and theme fallback.
 5. Run full negative-case host integration, race/idempotency, Docker, backward-compatibility, and CI matrix before declaring MVP or Pro readiness.
 
