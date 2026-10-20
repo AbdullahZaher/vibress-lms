@@ -4,11 +4,16 @@
   "private": true,
   "type": "module",
   "description": "Vibress LMS domain foundation; not an installable extension",
-  "engines": { "node": ">=22" },
+  "engines": {
+    "node": ">=22"
+  },
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "test": "npm run build && node --test test/*.test.mjs"
+    "test": "npm run build && node --test test/*.test.mjs",
+    "test:db": "bash scripts/test-postgres.sh"
   },
-  "devDependencies": { "typescript": "^5.5.3" }
+  "devDependencies": {
+    "typescript": "^5.5.3"
+  }
 }
