@@ -1,7 +1,18 @@
 # LMS ↔ Vibress host integration contract
 
-**Status: ARCHITECTURE DIRECTION ACCEPTED; exact SDK/API integration contracts remain provisional and unavailable on Vibress main as of 2026-10-19.** [RFC approval](RFC_APPROVAL.md).  
-Do not compile against example signatures until the platform's versioned plugin SDK and conformance suite are published.
+**Status: 2026-10-22 Host compatibility review.** Vibress PR #77 merged
+the trusted external-plugin host foundation, host-routed Admin/Member/Public
+APIs, Staff-scoped typed storage, operator event admission and bounded
+Studio/Web view contributions. This does **not** freeze or publish the
+independently installable SDK (the core `@vibress/plugin-sdk` package remains
+`private: true`). [RFC approval](RFC_APPROVAL.md) remains the architectural
+reference.
+
+The current Host Member facade authorizes `getSelf()` and existing-plan
+queries only; it does **not** expose transactional Member-owned enrollment
+writes or a course-specific paid-entitlement authority. The LMS must not
+silently use the Staff storage facade, private core Drizzle tables, raw SQL
+or user-supplied publication/Member IDs to fill that gap.
 
 ## 1. Existing core capabilities (confirmed)
 
@@ -104,3 +115,22 @@ For each LMS tag, record `LMS release / host SDK protocol major.minor / supporte
 ## 9. Definition of integration readiness
 
 Independent release artifact built and admitted; no core private imports; dual-publication auth/tenant tests; protected media and student data inaccessible from public cache; RTL/SEO theme fallback; migrations and backup/restore verified; disable/upgrade tested; CI contract suite passes. Until then `vibress-lms` is an architecture plan.
+
+
+## 6. Remaining Host adapter acceptance requirements (EXT-501–504)
+
+- Establish a separate, reviewed Host-bound Member-owned transactional
+  persistence contract with composite publication/member/course constraints,
+  atomic insert-or-existing semantics and fail-closed paid entitlements.
+- Prove actual operator admission and artifact signing on fresh install and
+  populated upgrades. The proposed `migrations/0001_initial.sql` is not an
+  accepted Host migration and must not be applied by plugin activation.
+- Test the independent `LmsHostApplication` against real Host session
+  resolution, two publications, published Arabic/English variants, RTL and
+  keyboard navigation, two themes and protected-media authorization.
+- Exercise disable/re-enable, revoked enrollment, duplicate submissions,
+  stale artifact rollback and coordinated PostgreSQL/Redis restore before
+  freezing the public SDK and declaring compatibility.
+
+The pure application/port tests in this branch are a step toward this
+integration, **not** evidence that these Host contracts are implemented.
