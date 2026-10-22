@@ -35,9 +35,32 @@ function fixture({
   courseRow = course, lessonRow = lesson, existing = null,
   insertion = { enrollment: activeEnrollment, inserted: true },
   throwOnInsert = false, catalogRows = [course], nextCursor = undefined,
+  lessonRows = [lesson], completionRows = [], completionInserted = true,
+  completionResult = undefined,
 } = {}) {
-  const calls = { insert: [], course: [], enrollment: [], list: [] };
+  const calls = { insert: [], course: [], enrollment: [], list: [],
+    progress: [], complete: [] };
   const repo = {
+    async listLessons(pub, id) {
+      calls.progress.push(['lessons', pub, id]);
+      return lessonRows;
+    },
+    async listCompletions(pub, id, enrollmentId) {
+      calls.progress.push(['completions', pub, id, enrollmentId]);
+      return completionRows;
+    },
+    async insertLessonCompletionIfAbsent(input) {
+      calls.complete.push(input);
+      return completionResult ?? {
+        completion: {
+          publicationId: input.publicationId,
+          courseId: input.courseId,
+          enrollmentId: input.enrollmentId,
+          lessonId: input.lessonId,
+        },
+        inserted: completionInserted,
+      };
+    },
     async listCourses(pub, limit, cursor) {
       calls.list.push([pub, limit, cursor]);
       return nextCursor === undefined
@@ -196,3 +219,108 @@ test('catalog rejects an overfull/unbounded Host repository response', async () 
     /Host course catalog response/);
 });
 
+
+test('learner progress counts published required lessons only for same-site active Member', async () => {
+  const complete = {
+    publicationId: 'site-a', courseId: 'course-a',
+    enrollmentId: 'enrollment-a', lessonId: 'lesson-a',
+  };
+  const { app } = fixture({ existing: activeEnrollment, completionRows: [complete] });
+  const progress = await app.getCourseProgress(member(), 'course-a');
+  assert.deepEqual(progress, {
+    required: 1, completed: 1, percent: 100,
+    isComplete: true, curriculumRevision: 1,
+  });
+  assert.equal(await app.getCourseProgress(anonymous, 'course-a'), null);
+  assert.equal(await app.getCourseProgress(member('site-b'), 'course-a'), null);
+});
+
+test('private progress is blocked for revoked and paid enrollments', async () => {
+  const revoked = fixture({ existing: { ...activeEnrollment, status: 'revoked' } });
+  assert.equal(await revoked.app.getCourseProgress(member(), 'course-a'), null);
+  const paid = fixture({
+    courseRow: { ...course, access: 'paid' }, existing: activeEnrollment,
+  });
+  assert.equal(await paid.app.getCourseProgress(member(), 'course-a'), null);
+  const draft = fixture({
+    courseRow: { ...course, status: 'draft' }, existing: activeEnrollment,
+  });
+  assert.equal(await draft.app.getCourseProgress(member(), 'course-a'), null);
+});
+
+test('lesson completion atomically binds publication, enrollment and learner', async () => {
+  const { app, calls } = fixture({ existing: activeEnrollment });
+  assert.deepEqual(await app.completeLesson(member(), 'course-a', 'lesson-a', 'ar'),
+    { kind: 'completed' });
+  assert.deepEqual(calls.complete, [{
+    publicationId: 'site-a', courseId: 'course-a',
+    enrollmentId: 'enrollment-a', lessonId: 'lesson-a',
+    memberId: 'learner-a',
+  }]);
+});
+
+test('concurrent lesson completion returns already-completed and is idempotent', async () => {
+  const { app } = fixture({
+    existing: activeEnrollment, completionInserted: false,
+  });
+  assert.deepEqual(await app.completeLesson(member(), 'course-a', 'lesson-a', 'en'),
+    { kind: 'already-completed' });
+  const done = {
+    publicationId: 'site-a', courseId: 'course-a',
+    enrollmentId: 'enrollment-a', lessonId: 'lesson-a',
+  };
+  const previouslyDone = fixture({
+    existing: activeEnrollment, completionRows: [done],
+  });
+  assert.deepEqual(await previouslyDone.app.completeLesson(
+    member(), 'course-a', 'lesson-a', 'en',
+  ), { kind: 'already-completed' });
+  assert.equal(previouslyDone.calls.complete.length, 0);
+});
+
+test('completion denies wrong-site, revoked, paid and absent learner', async () => {
+  for (const ctx of [anonymous, member('site-b')]) {
+    const { app, calls } = fixture({ existing: activeEnrollment });
+    assert.deepEqual(await app.completeLesson(ctx, 'course-a', 'lesson-a', 'ar'),
+      { kind: 'not-authorized' });
+    assert.equal(calls.complete.length, 0);
+  }
+  for (const options of [
+    { existing: { ...activeEnrollment, status: 'revoked' } },
+    { existing: activeEnrollment, courseRow: { ...course, access: 'paid' } },
+    { existing: null },
+  ]) {
+    const { app, calls } = fixture(options);
+    assert.deepEqual(await app.completeLesson(
+      member(), 'course-a', 'lesson-a', 'en',
+    ), { kind: 'not-authorized' });
+    assert.equal(calls.complete.length, 0);
+  }
+});
+
+test('host progress adapter cannot return another publication completion', async () => {
+  const { app } = fixture({
+    existing: activeEnrollment,
+    completionRows: [{
+      publicationId: 'site-b', courseId: 'course-a',
+      enrollmentId: 'enrollment-a', lessonId: 'lesson-a',
+    }],
+  });
+  await assert.rejects(app.getCourseProgress(member(), 'course-a'),
+    /Inconsistent course-scoped LMS records/);
+});
+
+test('host completion adapter mismatch cannot create an authorized response', async () => {
+  const { app } = fixture({
+    existing: activeEnrollment,
+    completionResult: {
+      completion: {
+        publicationId: 'site-b', courseId: 'course-a',
+        enrollmentId: 'enrollment-a', lessonId: 'lesson-a',
+      },
+      inserted: true,
+    },
+  });
+  await assert.rejects(app.completeLesson(member(), 'course-a', 'lesson-a', 'ar'),
+    /unauthorized lesson completion/);
+});

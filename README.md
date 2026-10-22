@@ -18,7 +18,8 @@ Run `npm install` then `npm run typecheck` and `npm test` (Node >=22). **No host
 The independent LMS repository now contains
 `src/application/host-operations.ts`, which adds a production-oriented
 application boundary for publication- and Member-scoped course projection,
-free enrollment decisions and protected lesson reads. It reuses the existing
+free enrollment decisions, protected lesson reads, course progress and
+idempotent lesson-completion decisions. It reuses the existing
 LMS domain policy and requires a **host-authenticated Member resolver** plus
 an **atomic, uniqueness-enforced, publication-bound repository adapter**.
 This code is independently testable with `npm run verify:local`.

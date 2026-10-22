@@ -115,3 +115,24 @@ pages fail closed. The optional port keeps earlier domain adapters compatible.
 This is application code plus tests, not a deployed Web SSR/Host catalog
 integration. Operator-approved storage, Member atomic enrollment and an
 independent signed installable artifact are still release blockers.
+
+## Member progress/completion application contract (additional pilot)
+
+The Host-scoped application service also projects course progress and admits
+lesson completion only for a verified Member session, an active enrollment
+and a published/free course and lesson in the requested published locale.
+It accepts **no caller-selected Member or publication identifier**.
+Progress validates every lesson/completion row against the parent course
+and enrollment, caps read-model size, and keeps paid-course progress blocked
+until an independent paid-entitlement authorization bridge exists.
+
+Completion is *idempotent at the application contract level*: the verified
+Host repository must recheck Member enrollment and course/lesson visibility
+under the same transaction as a unique composite insert. Duplicate concurrent
+requests return `already-completed`, revoked enrollments never reactivate,
+and mismatched repository results fail closed.
+
+These are typed application contracts with adversarial tests, not a live
+Host-Member persistence adapter. Candidate LMS SQL is still not an approved
+migration, and the platform does not yet expose the required public
+Member-owned transaction service.

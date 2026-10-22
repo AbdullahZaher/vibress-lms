@@ -3,7 +3,10 @@ import {
   type LessonAccess, type PublicCourse,
 } from "../domain/access.js";
 import { decideFreeEnrollment } from "../domain/enrollment.js";
-import type { Course, Enrollment, Lesson } from "../domain/types.js";
+import { calculateCourseProgress, decideLessonCompletion, type CourseProgress } from "../domain/progress.js";
+import type {
+  Course, Enrollment, Lesson, LessonCompletion,
+} from "../domain/types.js";
 
 /**
  * Application-level Host port for a separate, operator-approved LMS extension.
@@ -46,6 +49,22 @@ export interface PublicationScopedLmsRepository {
     readonly courseId: string;
     readonly memberId: string;
   }): Promise<{ readonly enrollment: Enrollment; readonly inserted: boolean }>;
+  /** Optional until a Host-approved Member progress contract is installed.
+   * Each lookup MUST filter by the full Host publication+course+enrollment. */
+  listLessons?(publicationId: string, courseId: string): Promise<readonly Lesson[]>;
+  listCompletions?(
+    publicationId: string, courseId: string, enrollmentId: string,
+  ): Promise<readonly LessonCompletion[]>;
+  /** Must atomically verify active current Member enrollment, published/free
+   * course+lesson, and UNIQUE(pub,course,enrollment,lesson). No caller member
+   * or publication IDs may be substituted by the repository implementation. */
+  insertLessonCompletionIfAbsent?(input: {
+    readonly publicationId: string;
+    readonly courseId: string;
+    readonly enrollmentId: string;
+    readonly lessonId: string;
+    readonly memberId: string;
+  }): Promise<{ readonly completion: LessonCompletion; readonly inserted: boolean }>;
 }
 
 export type EnrollmentOutcome =
@@ -140,6 +159,75 @@ export class LmsHostApplication {
     if (result.enrollment.status !== "active") return { kind: "reactivation-required" };
     // Callers receive no enrollment or member identifiers.
     return { kind: result.inserted ? "created" : "already-enrolled" };
+  }
+
+  /** No progress result is returned without the authenticated learner's
+   * active enrollment. Paid-course progress remains private until entitlement
+   * admission is implemented and independently verified by Host. */
+  async getCourseProgress(
+    context: AuthenticatedLmsRequest,
+    courseId: string,
+  ): Promise<CourseProgress | null> {
+    const member = await authenticatedMember(context);
+    if (!member || !courseId) return null;
+    if (!this.repository.listLessons || !this.repository.listCompletions) {
+      throw new Error("Member progress repository has not been admitted by Host");
+    }
+    const course = await this.repository.getCourse(member.publicationId, courseId);
+    if (!course || course.status !== "published" ||
+        course.access !== "free") return null;
+    const enrollment = await this.repository.getEnrollment(
+      member.publicationId, courseId, member.memberId,
+    );
+    if (!enrollment || enrollment.status !== "active" ||
+        enrollment.publicationId !== member.publicationId ||
+        enrollment.memberId !== member.memberId ||
+        enrollment.courseId !== courseId) return null;
+    const [lessons, completions] = await Promise.all([
+      this.repository.listLessons(member.publicationId, courseId),
+      this.repository.listCompletions(member.publicationId, courseId, enrollment.id),
+    ]);
+    if (lessons.length > 1000 || completions.length > 1000) {
+      throw new Error("Course progress bounds exceeded");
+    }
+    return calculateCourseProgress(course, enrollment, lessons, completions, member);
+  }
+
+  /** Completes a lesson only after Host member binding and domain admission.
+   * This is a decision/orchestration port, NOT a substitute for atomic DB
+   * constraints and live authorization inside the repository transaction. */
+  async completeLesson(
+    context: AuthenticatedLmsRequest,
+    courseId: string, lessonId: string, locale: string,
+  ): Promise<{ readonly kind: "completed" | "already-completed" | "not-authorized" }> {
+    const member = await authenticatedMember(context);
+    if (!member || !courseId || !lessonId) return { kind: "not-authorized" };
+    if (!this.repository.listCompletions ||
+        !this.repository.insertLessonCompletionIfAbsent) {
+      throw new Error("Member completion repository has not been admitted by Host");
+    }
+    const pub = member.publicationId;
+    const course = await this.repository.getCourse(pub, courseId);
+    const lesson = await this.repository.getLesson(pub, courseId, lessonId);
+    const enrollment = await this.repository.getEnrollment(pub, courseId, member.memberId);
+    if (!course || !lesson || !enrollment) return { kind: "not-authorized" };
+    const existing = await this.repository.listCompletions(pub, courseId, enrollment.id);
+    if (existing.length > 1000) throw new Error("Lesson completion bounds exceeded");
+    const admission = decideLessonCompletion(
+      course, lesson, enrollment, member, locale, existing,
+    );
+    if (admission.kind !== "eligible") return admission;
+    const result = await this.repository.insertLessonCompletionIfAbsent({
+      publicationId: pub, courseId, enrollmentId: enrollment.id,
+      lessonId, memberId: member.memberId,
+    });
+    if (result.completion.publicationId !== pub ||
+        result.completion.courseId !== courseId ||
+        result.completion.enrollmentId !== enrollment.id ||
+        result.completion.lessonId !== lessonId) {
+      throw new Error("Host returned an unauthorized lesson completion");
+    }
+    return { kind: result.inserted ? "completed" : "already-completed" };
   }
 
   async getProtectedLesson(
