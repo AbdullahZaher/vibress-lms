@@ -1,11 +1,27 @@
 # Vibress LMS
 
-**Status: LMS domain foundation implemented (pre-integration), NOT INSTALLABLE OR PRODUCTION READY.** [RFC approval](docs/RFC_APPROVAL.md).  
+**Status: domain foundation + provisional external ESM free-course pilot; NOT PRODUCTION READY.** [RFC approval](docs/RFC_APPROVAL.md).  
 **Design baseline:** 2026-10-19.  
 **Repository:** private and independently versioned from [Vibress core](https://github.com/AbdullahZaher/vibress).  
 **Proposed product:** self-hostable, publication-aware learning management extension, with Arabic/RTL and English support, inspired by the capability class of commercial WordPress LMS products. This is not affiliated with Tutor LMS.
 
 > **Important:** Vibress `main` currently has a trusted bundled-plugin SDK/host, but **does not yet** install and run independent external packages, register plugin-owned routes/UI or execute plugin-owned migrations. All extension interface examples in this repository are **proposals**, not working current APIs. Do not ship the LMS until the host compatibility and security gates are implemented and independently verified.
+
+
+## EXT-501 independent trusted Host pilot (new, provisional)
+
+The EXT-205 Host Member storage bridge is now merged in Vibress core. This
+branch includes an **opt-in external ESM pilot** with one fixed free course,
+Arabic/English catalog metadata and protected text lessons, plus idempotent
+Member-owned enrollment and completion records. The operator must review the
+signed artifact and apply an approved model migration before any publication
+can use it. No dynamic course authoring or paid entitlement is implemented.
+
+Run `npm run verify:local` and `npm run release:pilot`, then follow
+[the security/installation runbook](docs/PILOT_EXT205.md). The generated
+`dist/pilot-release/trusted-plugins.json` is unsigned and is **not** an
+installation or live Host acceptance test. The broader production blockers
+listed elsewhere in this README remain applicable.
 
 ## Implementation snapshot (2026-10-20)
 
@@ -24,9 +40,10 @@ LMS domain policy and requires a **host-authenticated Member resolver** plus
 an **atomic, uniqueness-enforced, publication-bound repository adapter**.
 This code is independently testable with `npm run verify:local`.
 
-**Do not claim the LMS is installable yet.** Vibress's current public SDK
-offers a scoped Member read facade, but it deliberately does not expose a
-Member-owned transactional enrollment storage API. The LMS will not import
+**Do not claim the LMS is installable yet.** Vibress core now exposes optional EXT-205 Member-owned transactional record
+storage via Host-bound `scope.memberStorage`. The fixed free-course pilot
+uses only that API, but the full LMS repository adapter, mutable courses,
+cross-model transactions and paid-entitlement checks remain unimplemented. The LMS will not import
 Vibress private database packages, deploy its candidate SQL directly or
 grant Member routes generic Staff-level storage permissions. Host adapter,
 approved migration/restore tests and deployed bilingual/RTL E2E are required
@@ -83,3 +100,15 @@ The pure domain module has real build and unit-test commands. Creating an instal
 Every nontrivial ticket begins with relevant Architect/Security/DB/API/Plugin-Theme/i18n/QA roles, then a scoped implementation plan. Protect backward compatibility with old persisted data and deployed themes. Apply least privilege and shared runtime validation. Finish with tests, diff inspection, compatibility notes, operator docs and an explicit blocker list.
 
 **حالة المشروع:** أُنجزت طبقة منطق الدورات والتقدم الدراسي واختباراتها الأولية، لكن الإضافة ليست جاهزة للتثبيت أو الاستخدام الفعلي. يلزم اكتمال واجهات الإضافات الخارجية والتخزين الآمن واختبارات الدمج أولاً.
+
+## EXT-502: Real Host HTTP acceptance (operator-managed)
+
+The fixed-course Pilot from the merged stacked branch is included in this integration PR.
+Run `npm run host:acceptance:test` to test the acceptance client against disposable
+loopback fixtures; run `npm run host:acceptance` against **two independently
+configured real Vibress publications** using three fresh test Member sessions.
+The client is read-only by default and requires explicit `LMS_HOST_ALLOW_WRITES=1`
+for enrollment/progress mutations. See [EXT-502 acceptance runbook](docs/HOST_ACCEPTANCE_EXT502.md).
+Neither local HTTP mocks nor the release fixture prove real Host installation.
+Automatic GitHub Actions triggers are temporarily paused on `main`; the full
+suite remains available via manual `workflow_dispatch` and must pass before release.
