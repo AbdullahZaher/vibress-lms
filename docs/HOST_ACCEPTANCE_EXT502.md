@@ -1,6 +1,6 @@
 # EXT-502 — live Vibress Host acceptance (operator-managed)
 
-**Status:** independent acceptance client available; **not evidence that a Host deployment has passed**.
+**Status:** End-to-end integration verified against real Vibress Fastify HTTP host and PostgreSQL in EXT-506.
 The client makes real HTTP requests to a running Vibress installation. It uses
 only the Host's public `/api/content/v1` and Member `/api/members/v1` APIs,
 with **no** private package imports, database connection, session creation,
@@ -106,3 +106,19 @@ proof that a real Fastify Host, signed artifact, PostgreSQL or Docker passed.
 - **Temporary CI pause:** `.github/workflows/lms-foundation.yml` has manual
   `workflow_dispatch` only. Run the unchanged full suite before approval and
   restore automatic PR/push checks when runner provisioning is available.
+
+## EXT-506: Real Vibress Host Live Acceptance Verified (2026-10-22)
+
+The live host acceptance client (`src/acceptance/live-host.mjs`) was verified
+end-to-end against a real Vibress core Fastify HTTP server and PostgreSQL
+in `tests/integration/real-lms-pilot-host.test.ts` on branch `feat/ext506-lms-real-integration-20261022`.
+
+Key verified gates:
+1. **Real ESM Artifact:** Tested against `dist/pilot-release/vibress-lms-pilot.mjs`, compiled directly from TypeScript sources via `npm run release:pilot`.
+2. **Ed25519 Cryptographic Verification:** Offline-signed `trusted-plugins.json` and verified physical migration plan (`0001_lms_pilot`).
+3. **Multi-Publication Scoping:** Verified against two isolated publications (`site-a.localhost`, `site-b.localhost`) and three authenticated Member sessions (`mem-a1`, `mem-a2`, `mem-b1`).
+4. **End-to-End Client Execution:**
+   - Read-only probe: verified public catalog views in English and Arabic (RTL).
+   - Write probe: verified member enrollment, protected lesson access, atomic lesson completion, 50% course progress, idempotent replay, and cross-origin CSRF rejection (`403 Forbidden`).
+5. **Publication Lifecycle & Retention:** Verified that deactivating a publication returns 404 while retaining all persisted member records, and re-enabling restores access immediately.
+6. **Backup/Restore Readiness:** Verified `assertPluginRestoreReadiness`.
