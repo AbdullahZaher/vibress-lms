@@ -1,0 +1,44 @@
+name: LMS foundation checks
+
+on:
+  push:
+    branches:
+      - feat/lms-domain-foundation-20261020
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  domain-and-database:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: vibress_lms_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d vibress_lms_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      LMS_TEST_DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/vibress_lms_test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+      - name: Strict TypeScript
+        run: npm run typecheck
+      - name: Pure domain tests
+        run: npm test
+      - name: PostgreSQL constraints and replay rollback
+        run: npm run test:db

@@ -1,11 +1,21 @@
 # Vibress LMS
 
-**Status: ARCHITECTURE ACCEPTED FOR IMPLEMENTATION — still PLANNING ONLY; no LMS runtime, routes, migrations or packages implemented.** [RFC approval](docs/RFC_APPROVAL.md).  
+**Status: LMS domain foundation implemented (pre-integration), NOT INSTALLABLE OR PRODUCTION READY.** [RFC approval](docs/RFC_APPROVAL.md).  
 **Design baseline:** 2026-10-19.  
 **Repository:** private and independently versioned from [Vibress core](https://github.com/AbdullahZaher/vibress).  
 **Proposed product:** self-hostable, publication-aware learning management extension, with Arabic/RTL and English support, inspired by the capability class of commercial WordPress LMS products. This is not affiliated with Tutor LMS.
 
 > **Important:** Vibress `main` currently has a trusted bundled-plugin SDK/host, but **does not yet** install and run independent external packages, register plugin-owned routes/UI or execute plugin-owned migrations. All extension interface examples in this repository are **proposals**, not working current APIs. Do not ship the LMS until the host compatibility and security gates are implemented and independently verified.
+
+## Implementation snapshot (2026-10-20)
+
+A small, executable **host-agnostic domain module** now exists in `src/domain/`: publication-scoped public course projection, guarded free-lesson access, paid-access fail-closed policy, course publishing checks (sections and published translations), safe free-enrollment decisions, locale-specific protected lesson references, course progress and duplicate completion classification. See [implementation status](docs/IMPLEMENTATION_STATUS.md).
+
+Run `npm install` then `npm run typecheck` and `npm test` (Node >=22). **No host adapter, plugin manifest, host-registered migration, persistent enrollment, API route, Studio page, or protected media delivery exists yet.** Domain-level `VerifiedMemberScope` is an input contract, **not proof of authentication**; the host must authenticate and independently match the Member to the resolved publication.
+
+## Database migration candidate
+
+LMS-102 includes a review-only, forward-only [PostgreSQL schema proposal](migrations/0001_initial.sql), [upgrade/security notes](docs/MIGRATION_0001.md), and a disposable PostgreSQL integrity fixture (`npm run test:db`). **Do not apply it to production or import database internals**: Vibress core must first implement and approve EXT-203's migration runner and typed repositories.
 
 ## Product objective
 
@@ -38,7 +48,7 @@ The planned [Vibress typed storage/runtime validation contract](https://github.c
 3. **LMS MVP:** sections, lessons, enrollment, progress, essential admin/learner UX, translation-ready pages, data and recovery tests.
 4. **LMS Pro:** assessments, advanced instructor workflows, certificates, reports, paid access integrations, lifecycle automation after independent approval.
 
-No runtime build/test commands are prescribed yet because no executable project exists. Establish the package skeleton only after host contract approval; never create deceptive empty CI checks that claim a working implementation.
+The pure domain module has real build and unit-test commands. Creating an installable plugin manifest/host integration remains blocked until the host contracts are approved and tested; do not create fake integration checks.
 
 ## Design principles
 
@@ -53,4 +63,4 @@ No runtime build/test commands are prescribed yet because no executable project 
 
 Every nontrivial ticket begins with relevant Architect/Security/DB/API/Plugin-Theme/i18n/QA roles, then a scoped implementation plan. Protect backward compatibility with old persisted data and deployed themes. Apply least privilege and shared runtime validation. Finish with tests, diff inspection, compatibility notes, operator docs and an explicit blocker list.
 
-**وثائق المشروع:** هذا المستودع يحتوي حالياً على التصميم والخطة فقط. لن تكون الإضافة قابلة للتثبيت أو الاستخدام حتى يكتمل نظام الإضافات الخارجية في Vibress وتنجح اختبارات الدمج.
+**حالة المشروع:** أُنجزت طبقة منطق الدورات والتقدم الدراسي واختباراتها الأولية، لكن الإضافة ليست جاهزة للتثبيت أو الاستخدام الفعلي. يلزم اكتمال واجهات الإضافات الخارجية والتخزين الآمن واختبارات الدمج أولاً.
