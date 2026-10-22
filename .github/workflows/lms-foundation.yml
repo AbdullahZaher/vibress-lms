@@ -1,10 +1,10 @@
 name: LMS foundation checks
 
+# Temporary operator-requested CI pause (2026-10-22).
+# Full test and PostgreSQL jobs stay intact for manual workflow_dispatch.
+# Restore push/pull_request triggers before production release approval.
 on:
-  push:
-    branches:
-      - feat/lms-domain-foundation-20261020
-  pull_request:
+  workflow_dispatch:
 
 permissions:
   contents: read
