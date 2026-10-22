@@ -136,3 +136,20 @@ These are typed application contracts with adversarial tests, not a live
 Host-Member persistence adapter. Candidate LMS SQL is still not an approved
 migration, and the platform does not yet expose the required public
 Member-owned transaction service.
+
+## EXT-501: independent signed-artifact pilot (2026-10-22)
+
+Vibress [core PR #80](https://github.com/AbdullahZaher/vibress/pull/80)
+merged EXT-205 Host Member storage. This branch now adds a provisional,
+operator-reviewed single-file ESM LMS pilot. It implements one fixed bilingual
+free course, Member-only free enrollment, protected plain-text lessons, and
+idempotent progress writes through `scope.memberStorage`. The artifact is
+source-independent and hash-pinned by the generated **unsigned** review
+lockfile. See [pilot operator runbook](PILOT_EXT205.md).
+
+Verified locally for this increment: strict TypeScript 5.8.3 compilation and
+7 focused Node tests. This is NOT an installed two-publication Vibress Host
+E2E, a signed/reproducible release approval, an independent production SDK
+compatibility certification, a tested existing-tenant migration or a real
+paid-course authorization. It does not replace the standalone relational LMS
+product-schema candidate, and does not yet ship course authoring.

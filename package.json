@@ -3,16 +3,18 @@
   "version": "0.1.0-dev.0",
   "private": true,
   "type": "module",
-  "description": "Vibress LMS domain foundation; not an installable extension",
+  "description": "Vibress LMS domain foundation and provisional Host Member storage pilot; not production ready",
   "engines": {
     "node": ">=22"
   },
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "test": "npm run build && node --test test/*.test.mjs",
+    "test": "npm run build && npm run prepare:pilot && node --test test/*.test.mjs",
     "test:db": "bash scripts/test-postgres.sh",
-    "lint": "tsc -p tsconfig.json --noEmit --noUnusedLocals --noUnusedParameters --noImplicitReturns && node --check test/domain.test.mjs && node --check test/lifecycle.test.mjs && node --check test/host-operations.test.mjs",
+    "lint": "tsc -p tsconfig.json --noEmit --noUnusedLocals --noUnusedParameters --noImplicitReturns && node --check test/domain.test.mjs && node --check test/lifecycle.test.mjs && node --check test/host-operations.test.mjs && node --check test/pilot-extension.test.mjs && node --check scripts/prepare-pilot-release.mjs",
+    "prepare:pilot": "node scripts/prepare-pilot-release.mjs",
+    "release:pilot": "npm run build && npm run prepare:pilot",
     "verify:local": "npm run lint && npm run typecheck && npm test"
   },
   "devDependencies": {

@@ -8,9 +8,10 @@ independently installable SDK (the core `@vibress/plugin-sdk` package remains
 `private: true`). [RFC approval](RFC_APPROVAL.md) remains the architectural
 reference.
 
-The current Host Member facade authorizes `getSelf()` and existing-plan
-queries only; it does **not** expose transactional Member-owned enrollment
-writes or a course-specific paid-entitlement authority. The LMS must not
+The Host now exposes optional EXT-205 `scope.memberStorage` for authenticated
+Member-owned records, with capability and operator-model checks per operation.
+It still does **not** expose cross-model relational transactions, dynamic LMS
+course authoring or a course-specific paid-entitlement authority. The LMS must not
 silently use the Staff storage facade, private core Drizzle tables, raw SQL
 or user-supplied publication/Member IDs to fill that gap.
 
