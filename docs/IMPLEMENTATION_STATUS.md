@@ -88,9 +88,11 @@ published/free course status inside the transaction and uses a unique
 automatically. Protected lesson access requires active same-publication
 enrollment; paid access fails closed.
 
-**Not yet integrated:** the present Vibress Member extension Host exposes
-`memberAccess.getSelf` and existing-plan checks, but no dedicated,
-host-authorized, Member-owned transactional enrollment storage API. The
+**EXT-205 merged:** the Vibress Member extension Host now exposes optional
+Host-authorized, Member-owned transactional record storage. The generic
+Staff storage API remains separate. The independent ESM pilot above exercises
+this record API against a fake Host but full installed-Host validation
+is still outstanding. The
 existing generic plugin storage API is deliberately Staff-only. A direct
 Drizzle/database import in `vibress-lms` would violate the security
 boundary. The pure application boundary therefore has no production
@@ -136,3 +138,34 @@ These are typed application contracts with adversarial tests, not a live
 Host-Member persistence adapter. Candidate LMS SQL is still not an approved
 migration, and the platform does not yet expose the required public
 Member-owned transaction service.
+
+## EXT-501: independent signed-artifact pilot (2026-10-22)
+
+Vibress [core PR #80](https://github.com/AbdullahZaher/vibress/pull/80)
+merged EXT-205 Host Member storage. This branch now adds a provisional,
+operator-reviewed single-file ESM LMS pilot. It implements one fixed bilingual
+free course, Member-only free enrollment, protected plain-text lessons, and
+idempotent progress writes through `scope.memberStorage`. The artifact is
+source-independent and hash-pinned by the generated **unsigned** review
+lockfile. See [pilot operator runbook](PILOT_EXT205.md).
+
+Verified locally for this increment: strict TypeScript 5.8.3 compilation and
+7 focused Node tests. This is NOT an installed two-publication Vibress Host
+E2E, a signed/reproducible release approval, an independent production SDK
+compatibility certification, a tested existing-tenant migration or a real
+paid-course authorization. It does not replace the standalone relational LMS
+product-schema candidate, and does not yet ship course authoring.
+
+## EXT-502: Host acceptance client (2026-10-22)
+
+A new read-only-by-default HTTP acceptance client can probe two real Vibress
+publications with three independently authenticated test Members. Opt-in tests
+cover free enrollment, duplicate writes, Arabic lessons, Origin/CSRF rejection,
+separate ownership and 50% lesson progress. The offline client unit tests use
+local fake HTTP servers and **do not establish real Host compatibility**.
+The provisional Pilot was merged into an upstream feature branch but was
+absent from `main`, so this integration branch brings its nine scoped files
+forward explicitly; no migrations or public Host SDK contracts were rewritten.
+GitHub Actions auto-triggers are temporarily paused while runner provisioning
+is investigated; manual tests and a genuine installed Host acceptance run
+remain mandatory before production approval.
