@@ -21,7 +21,7 @@ or user-supplied publication/Member IDs to fill that gap.
 | --- | --- |
 | Plugin SDK `PluginModule.activate`, `deactivate`, `onEvent` | `packages/plugin-sdk/src/index.ts`; canonical current API host shape |
 | Alternate `VibressPlugin.onActivate/onDeactivate/onEvent` | `packages/plugin-core/src/index.ts`; **not** the same context/manifest or ABI |
-| Hard-coded trusted plugin host | `apps/api/src/plugins/plugin-host.ts`; cannot load arbitrary standalone LMS package |
+| Trusted external ESM Host | `apps/api/src/plugins/plugin-host.ts` and operator lockfile; SHA-256-pinned, vetted single-file ESM allowed, **not** arbitrary ZIP installation |
 | Staff plugin management | `apps/api/src/routes/platform.ts`, `plugins.read/manage`, origin validation |
 | Member auth | `apps/api/src/middleware/member-auth.ts` and Member domain; distinct from Staff |
 | Billing/subscriptions | `packages/domains/billing` and `member-billing` routes; payment/subscription authority stays core |

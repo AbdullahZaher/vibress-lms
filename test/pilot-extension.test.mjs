@@ -130,6 +130,24 @@ test('revoked enrollments are never silently reactivated, and datastore errors p
   await assert.rejects(create(broken), /provider unavailable/);
 });
 
+
+
+test('suspended enrollment is never reactivated and cannot authorize lessons or progress', async () => {
+  const s = store(), learner = host('learner-a', 'site-a', s);
+  s.inject('enrollments', courseId, { course_key: courseId, state: 'suspended' });
+  assert.deepEqual(await create(learner),
+    { outcome: 'reactivation-required', courseId: '' });
+  assert.deepEqual(await call('member', 'GET', 'lesson', learner,
+    { courseId, lessonId: 'welcome', locale: 'en' }),
+    { outcome: 'not-found', title: '', body: '' });
+  assert.deepEqual(await call('member', 'GET', 'progress', learner, { courseId }),
+    { outcome: 'not-authorized', required: 0, completed: 0, percent: 0 });
+  assert.deepEqual(await call('member', 'POST', 'complete', learner,
+    { courseId, lessonId: 'welcome', locale: 'ar' }),
+    { outcome: 'not-authorized', lessonId: '' });
+  assert.equal(s.count(), 1);
+});
+
 test('public locale-specific metadata excludes protected lesson content and private IDs', async () => {
   for (const locale of ['en', 'ar']) {
     const projection = await call('public', 'GET', 'catalog', {

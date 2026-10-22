@@ -88,9 +88,11 @@ published/free course status inside the transaction and uses a unique
 automatically. Protected lesson access requires active same-publication
 enrollment; paid access fails closed.
 
-**Not yet integrated:** the present Vibress Member extension Host exposes
-`memberAccess.getSelf` and existing-plan checks, but no dedicated,
-host-authorized, Member-owned transactional enrollment storage API. The
+**EXT-205 merged:** the Vibress Member extension Host now exposes optional
+Host-authorized, Member-owned transactional record storage. The generic
+Staff storage API remains separate. The independent ESM pilot above exercises
+this record API against a fake Host but full installed-Host validation
+is still outstanding. The
 existing generic plugin storage API is deliberately Staff-only. A direct
 Drizzle/database import in `vibress-lms` would violate the security
 boundary. The pure application boundary therefore has no production

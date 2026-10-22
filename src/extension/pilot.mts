@@ -80,14 +80,14 @@ function conflict(error: unknown): boolean {
   return typeof error === "object" && error !== null &&
     "code" in error && error.code === "PLUGIN_MEMBER_STORAGE_CONFLICT";
 }
-function validEnrollment(record: StoredRecord | null): "active" | "revoked" | "missing" {
+function validEnrollment(record: StoredRecord | null): "active" | "inactive" | "missing" {
   if (!record) return "missing";
   // Fail closed if operator data/schema drift produces a mismatched record.
   if (record.id !== COURSE_ID || record.fields.course_key !== COURSE_ID ||
-      !["active", "revoked"].includes(String(record.fields.state))) {
+      !["active", "suspended", "revoked"].includes(String(record.fields.state))) {
     throw new Error("Inconsistent LMS enrollment");
   }
-  return record.fields.state === "active" ? "active" : "revoked";
+  return record.fields.state === "active" ? "active" : "inactive";
 }
 function completionId(lesson: (typeof LESSONS)[number]): string {
   return `${COURSE_ID}__${lesson}`;
@@ -100,7 +100,7 @@ function validCompletion(record: StoredRecord | null, lesson: (typeof LESSONS)[n
   }
   return true;
 }
-async function enrollment(storage: MemberStorage): Promise<"active" | "revoked" | "missing"> {
+async function enrollment(storage: MemberStorage): Promise<"active" | "inactive" | "missing"> {
   return validEnrollment(await storage.get("enrollments", COURSE_ID));
 }
 
@@ -132,13 +132,14 @@ const routes: readonly Route[] = [
       }
       const status = await enrollment(storage);
       if (status === "active") return { outcome: "already-enrolled", courseId: COURSE_ID };
-      if (status === "revoked") return { outcome: "reactivation-required", courseId: "" };
+      if (status === "inactive") return { outcome: "reactivation-required", courseId: "" };
       try {
         await storage.create("enrollments", COURSE_ID, { course_key: COURSE_ID, state: "active" });
         return { outcome: "created", courseId: COURSE_ID };
       } catch (error) {
         if (!conflict(error)) throw error;
         const retry = await enrollment(storage);
+        if (retry === "missing") throw new Error("Concurrent LMS enrollment disappeared");
         return retry === "active" ? { outcome: "already-enrolled", courseId: COURSE_ID } :
           { outcome: "reactivation-required", courseId: "" };
       }

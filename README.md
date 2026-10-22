@@ -40,9 +40,10 @@ LMS domain policy and requires a **host-authenticated Member resolver** plus
 an **atomic, uniqueness-enforced, publication-bound repository adapter**.
 This code is independently testable with `npm run verify:local`.
 
-**Do not claim the LMS is installable yet.** Vibress's current public SDK
-offers a scoped Member read facade, but it deliberately does not expose a
-Member-owned transactional enrollment storage API. The LMS will not import
+**Do not claim the LMS is installable yet.** Vibress core now exposes optional EXT-205 Member-owned transactional record
+storage via Host-bound `scope.memberStorage`. The fixed free-course pilot
+uses only that API, but the full LMS repository adapter, mutable courses,
+cross-model transactions and paid-entitlement checks remain unimplemented. The LMS will not import
 Vibress private database packages, deploy its candidate SQL directly or
 grant Member routes generic Staff-level storage permissions. Host adapter,
 approved migration/restore tests and deployed bilingual/RTL E2E are required
