@@ -53,6 +53,14 @@ npm run release:pilot
 reviewed field schemas. `prepare-pilot-release.mjs` does not sign, upload,
 install, activate or bypass any operator approval. A release candidate must:
 
+**New read-only compatibility gate:** Vibress core [PR #81](https://github.com/AbdullahZaher/vibress/pull/81)
+provides a signed operator migration-plan preflight. It verifies that this
+release's immutable model descriptors and migration checksums match the signed
+global lockfile. The CLI neither imports the LMS module nor executes SQL.
+Follow the [EXT-502 Host acceptance instructions](HOST_ACCEPTANCE_EXT502.md)
+after it merges; keep schema admission a separate operator transaction.
+
+
 1. Pin the Vibress core revision including EXT-205, verify SDK API/route
    compatibility, and independently review source and compiled artifact.
 2. Register the manifest while inactive through the operator-authorized
