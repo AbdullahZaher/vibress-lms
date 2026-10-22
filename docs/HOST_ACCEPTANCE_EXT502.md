@@ -14,10 +14,25 @@ plugin installation, signature bypass or direct tenant selection.
    signed operator-release process; do not run unsigned release fixtures in
    production. Do not replace the global operator lockfile with the Pilot-only
    fixture or modify an approved migration ledger from an HTTP endpoint.
-2. Use Vibress including migration **0045**. Apply the operator-approved
-   physical model catalog for the Pilot's two models using the platform's
-   offline privileged migration service; do not apply the standalone LMS
-   `0001_initial.sql` to the Host.
+2. Use Vibress including migration **0045**. Once the Pilot-only lockfile
+   entry has been merged into the full operator lockfile and the **final global
+   lockfile has been signed**, run the **read-only** EXT-503 plan validator in
+   the Vibress core checkout (**core PR #81**, pending merge):
+
+   ```sh
+   export VIBRESS_TRUSTED_PLUGIN_LOCKFILE=/absolute/operator/trusted-plugins.json
+   export VIBRESS_TRUSTED_PLUGIN_REQUIRE_SIGNATURE=1
+   export VIBRESS_TRUSTED_PLUGIN_PUBLIC_KEY_FILE=/absolute/operator/operator-public.pem
+   export VIBRESS_TRUSTED_PLUGIN_SIGNATURE_FILE=/absolute/operator/operator.sig
+   pnpm exec tsx scripts/plugins/check-migration-plan.ts \\
+     /absolute/operator/operator-migration-plan.json
+   ```
+
+   This check verifies exact release/model compatibility **without applying
+   any migration**. Apply the operator-approved physical model catalog for the
+   Pilot's two models using the separate privileged migration service while
+   the plugin is inactive; never treat a dry-run success as DB admission.
+   Do not apply standalone LMS `0001_initial.sql` to the Host.
 3. Register and activate `vibress-lms-pilot`, and enable it **independently**
    on two test publications with distinct externally routed site origins.
    Configure both publications to publish the pilot's `en` and `ar` locale
