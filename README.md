@@ -13,6 +13,24 @@ A small, executable **host-agnostic domain module** now exists in `src/domain/`:
 
 Run `npm install` then `npm run typecheck` and `npm test` (Node >=22). **No host adapter, plugin manifest, host-registered migration, persistent enrollment, API route, Studio page, or protected media delivery exists yet.** Domain-level `VerifiedMemberScope` is an input contract, **not proof of authentication**; the host must authenticate and independently match the Member to the resolved publication.
 
+## Host-scoped pilot application service (current branch)
+
+The independent LMS repository now contains
+`src/application/host-operations.ts`, which adds a production-oriented
+application boundary for publication- and Member-scoped course projection,
+free enrollment decisions and protected lesson reads. It reuses the existing
+LMS domain policy and requires a **host-authenticated Member resolver** plus
+an **atomic, uniqueness-enforced, publication-bound repository adapter**.
+This code is independently testable with `npm run verify:local`.
+
+**Do not claim the LMS is installable yet.** Vibress's current public SDK
+offers a scoped Member read facade, but it deliberately does not expose a
+Member-owned transactional enrollment storage API. The LMS will not import
+Vibress private database packages, deploy its candidate SQL directly or
+grant Member routes generic Staff-level storage permissions. Host adapter,
+approved migration/restore tests and deployed bilingual/RTL E2E are required
+to close EXT-501 through EXT-504.
+
 ## Database migration candidate
 
 LMS-102 includes a review-only, forward-only [PostgreSQL schema proposal](migrations/0001_initial.sql), [upgrade/security notes](docs/MIGRATION_0001.md), and a disposable PostgreSQL integrity fixture (`npm run test:db`). **Do not apply it to production or import database internals**: Vibress core must first implement and approve EXT-203's migration runner and typed repositories.
