@@ -8,9 +8,10 @@ independently installable SDK (the core `@vibress/plugin-sdk` package remains
 `private: true`). [RFC approval](RFC_APPROVAL.md) remains the architectural
 reference.
 
-The current Host Member facade authorizes `getSelf()` and existing-plan
-queries only; it does **not** expose transactional Member-owned enrollment
-writes or a course-specific paid-entitlement authority. The LMS must not
+The Host now exposes optional EXT-205 `scope.memberStorage` for authenticated
+Member-owned records, with capability and operator-model checks per operation.
+It still does **not** expose cross-model relational transactions, dynamic LMS
+course authoring or a course-specific paid-entitlement authority. The LMS must not
 silently use the Staff storage facade, private core Drizzle tables, raw SQL
 or user-supplied publication/Member IDs to fill that gap.
 
@@ -20,7 +21,7 @@ or user-supplied publication/Member IDs to fill that gap.
 | --- | --- |
 | Plugin SDK `PluginModule.activate`, `deactivate`, `onEvent` | `packages/plugin-sdk/src/index.ts`; canonical current API host shape |
 | Alternate `VibressPlugin.onActivate/onDeactivate/onEvent` | `packages/plugin-core/src/index.ts`; **not** the same context/manifest or ABI |
-| Hard-coded trusted plugin host | `apps/api/src/plugins/plugin-host.ts`; cannot load arbitrary standalone LMS package |
+| Trusted external ESM Host | `apps/api/src/plugins/plugin-host.ts` and operator lockfile; SHA-256-pinned, vetted single-file ESM allowed, **not** arbitrary ZIP installation |
 | Staff plugin management | `apps/api/src/routes/platform.ts`, `plugins.read/manage`, origin validation |
 | Member auth | `apps/api/src/middleware/member-auth.ts` and Member domain; distinct from Staff |
 | Billing/subscriptions | `packages/domains/billing` and `member-billing` routes; payment/subscription authority stays core |
