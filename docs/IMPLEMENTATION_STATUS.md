@@ -72,3 +72,32 @@ See [local verification record](LOCAL_VERIFICATION.md). GitHub Actions is not cu
 5. Run full negative-case host integration, race/idempotency, Docker, backward-compatibility, and CI matrix before declaring MVP or Pro readiness.
 
 This branch intentionally avoids changes to Vibress core and does not overlap the ongoing core extension host agent.
+
+
+## LMS host application increment — 2026-10-22
+
+This branch now includes `src/application/host-operations.ts`, a typed
+`LmsHostApplication` boundary, and adversarial Node tests. Its public course
+projection is locale-specific and excludes lesson/media/private/member data.
+Enrollment requires an authoritative current-Member resolver for the
+Host-selected publication and an atomic host-backed
+`insertFreeEnrollmentIfAbsent` repository operation that rechecks
+published/free course status inside the transaction and uses a unique
+(publication, course, Member) key. Duplicate races return
+`already-enrolled`; revoked/suspended enrollments never reactivate
+automatically. Protected lesson access requires active same-publication
+enrollment; paid access fails closed.
+
+**Not yet integrated:** the present Vibress Member extension Host exposes
+`memberAccess.getSelf` and existing-plan checks, but no dedicated,
+host-authorized, Member-owned transactional enrollment storage API. The
+existing generic plugin storage API is deliberately Staff-only. A direct
+Drizzle/database import in `vibress-lms` would violate the security
+boundary. The pure application boundary therefore has no production
+repository adapter or installed route registration yet. It is genuine
+reusable LMS business logic, **not** completion of EXT-501/503/504.
+
+Test with `npm run verify:local`. PostgreSQL disposable migration tests,
+cross-repo installed E2E, signed release acceptance and real restore
+are separate gates, and their success must not be inferred from the
+in-memory-port tests.

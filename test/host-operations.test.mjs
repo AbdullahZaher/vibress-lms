@@ -1,0 +1,153 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { LmsHostApplication } from '../dist/index.js';
+
+const course = {
+  id: 'course-a', publicationId: 'site-a', status: 'published',
+  access: 'free', curriculumRevision: 1,
+  translations: [
+    { locale: 'en', status: 'published', slug: 'course', title: 'Course', description: 'Learn' },
+    { locale: 'ar', status: 'published', slug: 'dawra', title: 'دورة', description: 'تعلم' },
+  ],
+};
+const lesson = {
+  id: 'lesson-a', publicationId: 'site-a', courseId: 'course-a',
+  sectionId: 'section-a', status: 'published', required: true,
+  translations: [
+    { locale: 'en', status: 'published', title: 'Lesson',
+      bodyRef: 'private-en', mediaRef: 'private-media' },
+    { locale: 'ar', status: 'published', title: 'درس',
+      bodyRef: 'private-ar', mediaRef: null },
+  ],
+};
+const activeEnrollment = {
+  id: 'enrollment-a', publicationId: 'site-a', courseId: 'course-a',
+  memberId: 'learner-a', status: 'active',
+};
+const member = (publicationId = 'site-a', id = 'learner-a') => ({
+  publicationId: 'site-a',
+  currentMember: async () => ({ publicationId, id }),
+});
+const anonymous = {
+  publicationId: 'site-a', currentMember: async () => null,
+};
+function fixture({
+  courseRow = course, lessonRow = lesson, existing = null,
+  insertion = { enrollment: activeEnrollment, inserted: true },
+  throwOnInsert = false,
+} = {}) {
+  const calls = { insert: [], course: [], enrollment: [] };
+  const repo = {
+    async getCourse(pub, id) {
+      calls.course.push([pub, id]);
+      return pub === 'site-a' && id === 'course-a' ? courseRow : null;
+    },
+    async getLesson(pub, id, lessonId) {
+      return pub === 'site-a' && id === 'course-a' && lessonId === 'lesson-a'
+        ? lessonRow : null;
+    },
+    async getEnrollment(pub, id, memberId) {
+      calls.enrollment.push([pub, id, memberId]);
+      return existing;
+    },
+    async insertFreeEnrollmentIfAbsent(input) {
+      calls.insert.push(input);
+      if (throwOnInsert) throw new Error('transaction lost');
+      return insertion;
+    },
+  };
+  return { app: new LmsHostApplication(repo), calls };
+}
+
+test('published course metadata supports Arabic, hides lessons and excludes other publications', async () => {
+  const { app } = fixture();
+  assert.deepEqual(await app.getPublicCourse('site-a', 'course-a', 'ar'), {
+    id: 'course-a', locale: 'ar', slug: 'dawra', title: 'دورة',
+    description: 'تعلم', access: 'free',
+  });
+  assert.equal(await app.getPublicCourse('site-b', 'course-a', 'ar'), null);
+  assert.equal(await app.getPublicCourse('site-a', 'course-a', 'fr'), null);
+  assert.equal(JSON.stringify(await app.getPublicCourse('site-a', 'course-a', 'en'))
+    .includes('private-media'), false);
+});
+
+test('unauthenticated, wrong-site and mismatched Member identities never enroll', async () => {
+  const { app, calls } = fixture();
+  assert.deepEqual(await app.enrollFree(anonymous, 'course-a', 'en'),
+    { kind: 'unauthenticated' });
+  assert.deepEqual(await app.enrollFree(member('site-b'), 'course-a', 'ar'),
+    { kind: 'unauthenticated' });
+  assert.deepEqual(await app.enrollFree({
+    publicationId: 'site-b', currentMember: async () => ({ id: 'learner-a', publicationId: 'site-b' }),
+  }, 'course-a', 'en'), { kind: 'not-found' });
+  assert.equal(calls.insert.length, 0);
+});
+
+test('free enrollment uses a narrowly scoped atomic insert contract', async () => {
+  const { app, calls } = fixture();
+  assert.deepEqual(await app.enrollFree(member(), 'course-a', 'ar'), { kind: 'created' });
+  assert.deepEqual(calls.insert, [{
+    publicationId: 'site-a', courseId: 'course-a', memberId: 'learner-a',
+  }]);
+});
+
+test('atomic duplicate race never claims a newly created enrollment', async () => {
+  const { app } = fixture({
+    insertion: { enrollment: activeEnrollment, inserted: false },
+  });
+  assert.deepEqual(await app.enrollFree(member(), 'course-a', 'en'),
+    { kind: 'already-enrolled' });
+});
+
+test('existing active, revoked and paid enrollment policies fail closed', async () => {
+  const already = fixture({ existing: activeEnrollment });
+  assert.deepEqual(await already.app.enrollFree(member(), 'course-a', 'en'),
+    { kind: 'already-enrolled' });
+  assert.equal(already.calls.insert.length, 0);
+  const revoked = fixture({
+    insertion: { enrollment: { ...activeEnrollment, status: 'revoked' }, inserted: false },
+  });
+  assert.deepEqual(await revoked.app.enrollFree(member(), 'course-a', 'en'),
+    { kind: 'reactivation-required' });
+  const paid = fixture({ courseRow: { ...course, access: 'paid' } });
+  assert.deepEqual(await paid.app.enrollFree(member(), 'course-a', 'en'),
+    { kind: 'entitlement-required' });
+  assert.equal(paid.calls.insert.length, 0);
+});
+
+test('compromised adapter returning another Member enrollment is rejected', async () => {
+  const { app } = fixture({
+    insertion: {
+      enrollment: { ...activeEnrollment, memberId: 'learner-b' },
+      inserted: true,
+    },
+  });
+  assert.deepEqual(await app.enrollFree(member(), 'course-a', 'en'),
+    { kind: 'not-found' });
+});
+
+test('database failures propagate and cannot be interpreted as enrollment success', async () => {
+  const { app } = fixture({ throwOnInsert: true });
+  await assert.rejects(app.enrollFree(member(), 'course-a', 'en'), /transaction lost/);
+});
+
+test('protected lesson reads require same-site active enrollment', async () => {
+  const { app } = fixture({ existing: activeEnrollment });
+  const allowed = await app.getProtectedLesson(member(), 'course-a', 'lesson-a', 'ar');
+  assert.equal(allowed.kind, 'allowed');
+  assert.equal(allowed.lesson?.bodyRef, 'private-ar');
+  assert.deepEqual(await app.getProtectedLesson(member('site-b'), 'course-a', 'lesson-a', 'ar'),
+    { kind: 'not-found' });
+  assert.deepEqual(await app.getProtectedLesson(anonymous, 'course-a', 'lesson-a', 'en'),
+    { kind: 'not-found' });
+  const noEnrollment = fixture();
+  assert.deepEqual(await noEnrollment.app.getProtectedLesson(member(), 'course-a', 'lesson-a', 'en'),
+    { kind: 'not-found' });
+});
+
+test('paid lesson is never unlocked merely by Member enrollment', async () => {
+  const { app } = fixture({ courseRow: { ...course, access: 'paid' },
+    existing: activeEnrollment });
+  assert.deepEqual(await app.getProtectedLesson(member(), 'course-a', 'lesson-a', 'en'),
+    { kind: 'entitlement-required' });
+});

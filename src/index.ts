@@ -24,3 +24,8 @@ export type {
 } from "./domain/course-publication.js";
 export { decideFreeEnrollment } from "./domain/enrollment.js";
 export type { FreeEnrollmentDecision } from "./domain/enrollment.js";
+
+export { LmsHostApplication } from "./application/host-operations.js";
+export type {
+  AuthenticatedLmsRequest, PublicationScopedLmsRepository, EnrollmentOutcome,
+} from "./application/host-operations.js";
