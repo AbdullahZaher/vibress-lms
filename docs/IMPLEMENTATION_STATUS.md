@@ -101,3 +101,17 @@ Test with `npm run verify:local`. PostgreSQL disposable migration tests,
 cross-repo installed E2E, signed release acceptance and real restore
 are separate gates, and their success must not be inferred from the
 in-memory-port tests.
+
+## Publication-scoped public course catalog
+
+The application port now includes a bounded, cursor-paginated
+`listPublicCourses` read operation. The repository must list **only the Host's
+resolved publication** and cannot use client-supplied tenant selectors. The
+application then applies `projectPublicCourse` to each row, omitting drafts,
+other publications and unpublished locale variants; it never serializes lesson
+body, media or Member fields. Invalid limits/cursors and overfull repository
+pages fail closed. The optional port keeps earlier domain adapters compatible.
+
+This is application code plus tests, not a deployed Web SSR/Host catalog
+integration. Operator-approved storage, Member atomic enrollment and an
+independent signed installable artifact are still release blockers.

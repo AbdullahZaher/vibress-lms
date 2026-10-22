@@ -34,10 +34,16 @@ const anonymous = {
 function fixture({
   courseRow = course, lessonRow = lesson, existing = null,
   insertion = { enrollment: activeEnrollment, inserted: true },
-  throwOnInsert = false,
+  throwOnInsert = false, catalogRows = [course], nextCursor = undefined,
 } = {}) {
-  const calls = { insert: [], course: [], enrollment: [] };
+  const calls = { insert: [], course: [], enrollment: [], list: [] };
   const repo = {
+    async listCourses(pub, limit, cursor) {
+      calls.list.push([pub, limit, cursor]);
+      return nextCursor === undefined
+        ? { items: catalogRows }
+        : { items: catalogRows, nextCursor };
+    },
     async getCourse(pub, id) {
       calls.course.push([pub, id]);
       return pub === 'site-a' && id === 'course-a' ? courseRow : null;
@@ -151,3 +157,42 @@ test('paid lesson is never unlocked merely by Member enrollment', async () => {
   assert.deepEqual(await app.getProtectedLesson(member(), 'course-a', 'lesson-a', 'en'),
     { kind: 'entitlement-required' });
 });
+
+test('public catalog is a bounded host-scoped English/Arabic projection', async () => {
+  const foreign = { ...course, id: 'foreign', publicationId: 'site-b' };
+  const draft = { ...course, id: 'draft', status: 'draft' };
+  const spanish = { ...course, id: 'spanish',
+    translations: [{ locale: 'es', status: 'published', slug: 'curso',
+      title: 'Curso', description: 'Aprender' }] };
+  const { app, calls } = fixture({
+    catalogRows: [course, foreign, draft, spanish],
+    nextCursor: 'cursor-2',
+  });
+  const result = await app.listPublicCourses('site-a', 'ar', 4, 'cursor-1');
+  assert.deepEqual(result, {
+    items: [{
+      id: 'course-a', locale: 'ar', slug: 'dawra', title: 'دورة',
+      description: 'تعلم', access: 'free',
+    }],
+    nextCursor: 'cursor-2',
+  });
+  assert.deepEqual(calls.list, [['site-a', 4, 'cursor-1']]);
+  assert.equal(JSON.stringify(result).includes('private-media'), false);
+});
+
+test('catalog never invokes repository for invalid publication and invalid pagination', async () => {
+  const { app, calls } = fixture();
+  assert.deepEqual(await app.listPublicCourses('another/site', 'en'), { items: [] });
+  assert.equal(calls.list.length, 0);
+  await assert.rejects(app.listPublicCourses('site-a', 'en', 51), /pagination/);
+  await assert.rejects(app.listPublicCourses('site-a', 'en', 0), /pagination/);
+  await assert.rejects(app.listPublicCourses('site-a', 'en', 3, '../bad'), /pagination/);
+  assert.equal(calls.list.length, 0);
+});
+
+test('catalog rejects an overfull/unbounded Host repository response', async () => {
+  const { app } = fixture({ catalogRows: [course, course] });
+  await assert.rejects(app.listPublicCourses('site-a', 'en', 1),
+    /Host course catalog response/);
+});
+

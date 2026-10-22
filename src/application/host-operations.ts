@@ -21,6 +21,11 @@ export interface AuthenticatedLmsRequest {
 }
 
 export interface PublicationScopedLmsRepository {
+  /** Cursor pagination is publication-scoped in the Host repository. Returns
+   * at most the requested number of courses in stable canonical-ID order. */
+  listCourses?(
+    publicationId: string, limit: number, cursor?: string,
+  ): Promise<{ readonly items: readonly Course[]; readonly nextCursor?: string }>;
   getCourse(publicationId: string, courseId: string): Promise<Course | null>;
   getLesson(publicationId: string, courseId: string, lessonId: string): Promise<Lesson | null>;
   getEnrollment(
@@ -77,6 +82,37 @@ export class LmsHostApplication {
     if (!publicationId || !courseId) return null;
     const course = await this.repository.getCourse(publicationId, courseId);
     return course ? projectPublicCourse(course, publicationId, locale) : null;
+  }
+
+  /**
+   * Public catalog projection. Both the Host repository's query and the
+   * projection enforce the publication boundary. Drafts, archived courses,
+   * unpublished locale variants and private lesson data never cross it.
+   */
+  async listPublicCourses(
+    publicationId: string, locale: string, limit = 12, cursor?: string,
+  ): Promise<{ readonly items: readonly PublicCourse[]; readonly nextCursor?: string }> {
+    if (!publicationId || !/^[a-zA-Z0-9_-]{1,128}$/.test(publicationId)) {
+      return { items: [] };
+    }
+    if (!Number.isSafeInteger(limit) || limit < 1 || limit > 50 ||
+        (cursor !== undefined && !/^[a-zA-Z0-9_-]{1,128}$/.test(cursor))) {
+      throw new Error("Invalid course catalog pagination");
+    }
+    if (!this.repository.listCourses) {
+      throw new Error("The Host has not admitted a publication-scoped catalog repository");
+    }
+    const page = await this.repository.listCourses(publicationId, limit, cursor);
+    if (!page || !Array.isArray(page.items) || page.items.length > limit ||
+        (page.nextCursor !== undefined &&
+          !/^[a-zA-Z0-9_-]{1,128}$/.test(page.nextCursor))) {
+      throw new Error("Invalid Host course catalog response");
+    }
+    const items = page.items.flatMap((row) => {
+      const publicCourse = projectPublicCourse(row, publicationId, locale);
+      return publicCourse ? [publicCourse] : [];
+    });
+    return page.nextCursor ? { items, nextCursor: page.nextCursor } : { items };
   }
 
   async enrollFree(
