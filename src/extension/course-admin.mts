@@ -142,19 +142,52 @@ const route: Route[] = [
       title_en: "string", title_ar: "string", summary_en: "string", summary_ar: "string",
       lesson_title_en: "string", lesson_title_ar: "string",
       lesson_body_en: "string", lesson_body_ar: "string",
+      total: "number", coursesJson: "string",
     }, required: [
       "outcome", "courseId", "status", "version",
-      ...fieldNames,
+      ...fieldNames, "total", "coursesJson",
     ] },
     async handle(_input, scope) {
       const storage = staffStorage(scope);
-      if (!storage) return { ...outcome("unavailable"), ...Object.fromEntries(fieldNames.map((name) => [name, ""])) };
-      const { items } = await storage.list(MODEL_COURSES, 1);
-      const first = items[0];
-      if (!first) return { ...outcome("empty"), ...Object.fromEntries(fieldNames.map((name) => [name, ""])) };
-      if (!validStored(first, first.id)) throw new Error("Inconsistent stored course");
+      if (!storage) {
+        return {
+          ...outcome("unavailable"),
+          ...Object.fromEntries(fieldNames.map((name) => [name, ""])),
+          total: 0,
+          coursesJson: "[]",
+        };
+      }
+      const { items } = await storage.list(MODEL_COURSES, 50);
+      const validItems = items.filter((item) => validStored(item, item.id));
+      const first = validItems[0];
+      if (!first) {
+        return {
+          ...outcome("empty"),
+          ...Object.fromEntries(fieldNames.map((name) => [name, ""])),
+          total: 0,
+          coursesJson: "[]",
+        };
+      }
+      const summaryList = validItems.map((item) => ({
+        id: item.id,
+        status: String(item.fields.status),
+        version: item.version,
+        title_en: String(item.fields.title_en || ""),
+        title_ar: String(item.fields.title_ar || ""),
+        summary_en: String(item.fields.summary_en || ""),
+        summary_ar: String(item.fields.summary_ar || ""),
+        lesson_title_en: String(item.fields.lesson_title_en || ""),
+        lesson_title_ar: String(item.fields.lesson_title_ar || ""),
+        lesson_body_en: String(item.fields.lesson_body_en || ""),
+        lesson_body_ar: String(item.fields.lesson_body_ar || ""),
+      }));
       const values = Object.fromEntries(fieldNames.map((name) => [name, first.fields[name]]));
-      return { ...outcome("available", first.id, first.version, String(first.fields.status)), ...values };
+      return {
+        ...outcome("available", first.id, first.version, String(first.fields.status)),
+        ...values,
+        total: validItems.length,
+        coursesJson: JSON.stringify(summaryList).slice(0, 4000),
+      };
     },
   },
   {

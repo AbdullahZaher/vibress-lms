@@ -7,21 +7,18 @@
 <style>
 :root {
   color-scheme: light dark;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   --bg-primary: Canvas;
   --text-primary: CanvasText;
-  --border-subtle: #88888840;
+  --border-subtle: #8888;
   --primary: #2563eb;
   --primary-hover: #1d4ed8;
   --success: #16a34a;
   --badge-bg: #e2e8f0;
-  --badge-text: #1e293b;
+  --badge-text: #0f172a;
 }
 @media (prefers-color-scheme: dark) {
   :root {
-    --primary: #3b82f6;
-    --primary-hover: #60a5fa;
-    --success: #22c55e;
     --badge-bg: #1e293b;
     --badge-text: #f1f5f9;
   }
@@ -46,7 +43,7 @@ header {
   padding-bottom: 1rem;
   margin-bottom: 1.5rem;
 }
-h1, h2, h3 { margin: 0 0 0.5rem 0; line-height: 1.25; }
+h1, h2, h3, h4 { margin: 0 0 0.5rem 0; line-height: 1.25; }
 .lang-toggle {
   display: inline-flex;
   gap: 0.5rem;
@@ -207,12 +204,15 @@ button:focus-visible, input:focus-visible { outline: 3px solid Highlight; outlin
     document.querySelectorAll("[data-" + lang + "]").forEach((node) => {
       node.textContent = node.getAttribute("data-" + lang) || "";
     });
+
+    if (currentCourseId) {
+      void loadCourse(currentCourseId);
+    }
   }
 
   el("lang-en").addEventListener("click", () => setLanguage("en"));
   el("lang-ar").addEventListener("click", () => setLanguage("ar"));
 
-  // Status helper
   function notify(msg, type = "info") {
     const alert = el("status-alert");
     alert.className = "status-msg " + type;
@@ -250,7 +250,128 @@ button:focus-visible, input:focus-visible { outline: 3px solid Highlight; outlin
     }
   };
 
-  setLanguage("en");
+  async function loadCourse(courseId) {
+    currentCourseId = courseId;
+    try {
+      const res = await fetch(`/api/content/v1/extensions/vibress-lms-authoring/v1/course?courseId=${encodeURIComponent(courseId)}&locale=${lang}`);
+      if (!res.ok) throw new Error("Course not found");
+      const data = await res.json();
+      if (data.outcome !== "published") throw new Error("Course not published");
+
+      el("course-title").textContent = data.title;
+      el("course-summary").textContent = data.description;
+      el("lesson-preview-title").textContent = data.lessonTitle;
+      el("lesson-title").textContent = data.lessonTitle;
+
+      await checkMemberStatus(courseId);
+    } catch (err) {
+      notify(lang === "ar" ? "تعذر تحميل الدورة" : "Unable to load course", "error");
+    }
+  }
+
+  async function checkMemberStatus(courseId) {
+    try {
+      const progRes = await fetch(`/api/members/v1/extensions/vibress-lms-authoring/v1/progress?courseId=${encodeURIComponent(courseId)}`, {
+        credentials: "include"
+      });
+      if (!progRes.ok) return;
+      const prog = await progRes.json();
+      if (prog.outcome === "available") {
+        isEnrolled = true;
+        el("btn-enroll").disabled = true;
+        el("enrollment-status").textContent = lang === "ar" ? "أنت مسجل في هذه الدورة ✓" : "Enrolled in course ✓";
+        el("progress-section").style.display = "block";
+        el("lesson-section").style.display = "block";
+        el("progress-fill").style.width = prog.percent + "%";
+        el("progress-text").textContent = `${prog.percent}% ${lang === "ar" ? "مكتمل" : "completed"}`;
+
+        if (prog.percent === 100) {
+          isCompleted = true;
+          el("btn-complete").disabled = true;
+          el("completion-status").textContent = lang === "ar" ? "مكتمل ✓" : "Completed ✓";
+        }
+
+        const lessonRes = await fetch(`/api/members/v1/extensions/vibress-lms-authoring/v1/lesson?courseId=${encodeURIComponent(courseId)}&locale=${lang}`, {
+          credentials: "include"
+        });
+        if (lessonRes.ok) {
+          const lessonData = await lessonRes.json();
+          if (lessonData.outcome === "allowed") {
+            el("lesson-title").textContent = lessonData.title;
+            el("lesson-body").textContent = lessonData.body;
+          }
+        }
+      }
+    } catch {
+      // Unauthenticated or not enrolled
+    }
+  }
+
+  el("btn-enroll").addEventListener("click", async () => {
+    if (!currentCourseId || isEnrolled) return;
+    el("btn-enroll").disabled = true;
+    try {
+      const res = await fetch("/api/members/v1/extensions/vibress-lms-authoring/v1/enroll", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ courseId: currentCourseId, locale: lang })
+      });
+      if (!res.ok) throw new Error("Enrollment failed");
+      const data = await res.json();
+      if (data.outcome === "created" || data.outcome === "already-enrolled") {
+        notify(lang === "ar" ? "تم التسجيل بنجاح!" : "Enrolled successfully!", "success");
+        await checkMemberStatus(currentCourseId);
+      } else {
+        notify(lang === "ar" ? "تعذر التسجيل" : "Enrollment denied", "error");
+        el("btn-enroll").disabled = false;
+      }
+    } catch {
+      notify(lang === "ar" ? "خطأ أثناء التسجيل" : "Error enrolling in course", "error");
+      el("btn-enroll").disabled = false;
+    }
+  });
+
+  el("btn-complete").addEventListener("click", async () => {
+    if (!currentCourseId || isCompleted) return;
+    el("btn-complete").disabled = true;
+    try {
+      const res = await fetch("/api/members/v1/extensions/vibress-lms-authoring/v1/complete", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ courseId: currentCourseId, locale: lang })
+      });
+      if (!res.ok) throw new Error("Completion failed");
+      const data = await res.json();
+      if (data.outcome === "completed" || data.outcome === "already-completed") {
+        notify(lang === "ar" ? "تهانينا! لقد أكملت الدرس." : "Congratulations! Lesson completed.", "success");
+        await checkMemberStatus(currentCourseId);
+      } else {
+        notify(lang === "ar" ? "تعذر إكمال الدرس" : "Unable to mark completed", "error");
+        el("btn-complete").disabled = false;
+      }
+    } catch {
+      notify(lang === "ar" ? "خطأ في الاتصال" : "Error completing lesson", "error");
+      el("btn-complete").disabled = false;
+    }
+  });
+
+  const urlParams = new URLSearchParams(window.location.search);
+  const initialCourse = urlParams.get("courseId");
+  const initialLocale = urlParams.get("locale") || (navigator.language.startsWith("ar") ? "ar" : "en");
+  setLanguage(initialLocale.startsWith("ar") ? "ar" : "en");
+
+  if (initialCourse) {
+    void loadCourse(initialCourse);
+  } else {
+    fetch(`/api/content/v1/extensions/vibress-lms-authoring/views/catalog/page?locale=${lang}`)
+      .then(r => r.ok ? r.json() : null)
+      .then(d => {
+        if (d?.data?.courseId) void loadCourse(d.data.courseId);
+      })
+      .catch(() => {});
+  }
 })();
 </script>
 </body>
