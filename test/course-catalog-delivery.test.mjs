@@ -163,6 +163,7 @@ test("public course detail: returns metadata for published course, not-found for
   );
   assert.equal(pubRes.outcome, "published");
   assert.equal(pubRes.courseId, "published-01");
+  assert.equal(pubRes.publicationId, "pub-1");
   assert.equal(pubRes.title, sampleCourse.title_en);
   assert.equal(pubRes.lessonTitle, sampleCourse.lesson_title_en);
   // Security check
