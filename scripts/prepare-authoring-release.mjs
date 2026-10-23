@@ -77,6 +77,10 @@ const lockfile = {
     manifest, sha256: artifactSha256, storageModels: models,
     adminUiAssets: [{
       viewId: "courses", path: "courses.html", sha256: sha256(document),
+    }, {
+      // Integrity-pinned release asset only; this is NOT an Admin view.
+      // The first-party Web learner component is the active public UI.
+      viewId: "student", path: "student.html", sha256: sha256(studentDoc),
     }],
   }],
 };
