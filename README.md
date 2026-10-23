@@ -8,6 +8,16 @@
 > **Important:** Vibress `main` currently has a trusted bundled-plugin SDK/host, but **does not yet** install and run independent external packages, register plugin-owned routes/UI or execute plugin-owned migrations. All extension interface examples in this repository are **proposals**, not working current APIs. Do not ship the LMS until the host compatibility and security gates are implemented and independently verified.
 
 
+## LMS-103 operator-approved course authoring addon (development only)
+
+An **optional independent Staff-only** extension now implements bilingual
+course draft/save/publish over Host-scoped storage and an opaque-origin
+Admin editor, without changing the installed free-course Member pilot.
+Run `npm run release:authoring` to generate an **unsigned, uninstalled**
+review fixture. See [LMS-103 security, migration and acceptance](docs/LMS_103_COURSE_AUTHORING.md).
+Published authoring records are **not yet** public/member-accessible; this
+is a bounded authoring foundation, not the full LMS curriculum MVP.
+
 ## EXT-501 independent trusted Host pilot (new, provisional)
 
 The EXT-205 Host Member storage bridge is now merged in Vibress core. This
