@@ -74,7 +74,8 @@ function parseCourseId(value: Scalar | undefined): string | null {
   return typeof value === "string" && COURSE_ID.test(value) ? value : null;
 }
 function parseLocale(value: Scalar | undefined): "en" | "ar" | null {
-  return value === "en" || value === "ar" ? value : null;
+  if (typeof value !== "string" || !/^(?:en|ar)(?:-[A-Za-z0-9]{2,8})*$/i.test(value)) return null;
+  return value.toLowerCase().startsWith("ar") ? "ar" : "en";
 }
 function text(value: Scalar | undefined, limit: number): string | null {
   if (typeof value !== "string" || value.length > limit || /[\u0000-\u0008\u000B\u000C\u000E-\u001F]/.test(value)) return null;
