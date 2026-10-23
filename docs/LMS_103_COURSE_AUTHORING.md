@@ -63,7 +63,9 @@ lockfile directly as the global production operator lockfile. Follow
    separate consent-checked migration executor while this addon is inactive.
    The one new physical model is `courses`. Do **not** apply LMS standalone
    `migrations/0001_initial.sql` to core or modify released core migrations.
-4. Register the new manifest through the operator-only Admin Add Plugin flow,
+4. Register the new manifest through the existing operator-only
+   `/api/admin/v1/plugins/register-trusted` endpoint (or the Add Plugin
+   Admin UX after the separate EXT-507 branch is reviewed and merged),
    activate independently and enable only the approved test publication.
    Never automatically enable any other publication.
 5. Exercise Staff owner/admin, editor, anonymous and Member restrictions;
