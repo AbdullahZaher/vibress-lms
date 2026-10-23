@@ -16,8 +16,8 @@ button:focus-visible,input:focus-visible,textarea:focus-visible{outline:3px soli
 .note{font-size:.85rem;opacity:.85}
 </style></head><body>
 <h1 data-en="Courses" data-ar="الدورات">Courses</h1>
-<p class="note" data-en="Staff-only draft and publish workflow. One required bilingual text lesson per course. Publishing does not yet expose a public catalog."
- data-ar="إدارة المسودات والنشر للموظفين فقط. درس نصي واحد بالعربية والإنجليزية لكل دورة. النشر لا يضيفها إلى الفهرس العام بعد.">
+<p class="note" data-en="Staff-only draft and publish workflow. One required bilingual text lesson per course. Publishing makes this course available in the public catalog for Member enrollment."
+ data-ar="إدارة المسودات والنشر للموظفين فقط. درس نصي واحد بالعربية والإنجليزية لكل دورة. النشر يضيف الدورة إلى الفهرس العام ويتيح تسجيل الأعضاء.">
  Staff-only draft and publish workflow. One required bilingual text lesson per course. Publishing does not yet expose a public catalog.</p>
 <form id="editor" autocomplete="off">
 <fieldset disabled id="fields">
@@ -53,12 +53,12 @@ button:focus-visible,input:focus-visible,textarea:focus-visible{outline:3px soli
   const messages = {
     en: { connecting:'Connecting to Vibress…', ready:'Ready', failed:'Request unavailable',
       empty:'No course registered here', saved:'Draft saved', created:'Draft created',
-      published:'Course published (not yet public)', conflict:'Conflict: reload this editor',
+      published:'Course published and catalog-ready', conflict:'Conflict: reload this editor',
       invalid:'Check input and lesson translations', notReady:'Save and complete both language lessons first',
       immutable:'Published courses cannot be edited by this release' },
     ar: { connecting:'جارٍ الاتصال بفيبرس…', ready:'جاهز', failed:'الطلب غير متاح',
       empty:'لا توجد دورة هنا', saved:'تم حفظ المسودة', created:'تم إنشاء المسودة',
-      published:'تم نشر الدورة (ليست عامة بعد)', conflict:'تعارض: أعد تحميل المحرر',
+      published:'تم نشر الدورة وأصبحت متاحة في الفهرس', conflict:'تعارض: أعد تحميل المحرر',
       invalid:'تحقق من الحقول وترجمات الدرس', notReady:'احفظ المسودة وأكمل الدرس باللغتين أولًا',
       immutable:'لا يمكن تعديل الدورات المنشورة بهذا الإصدار' },
   };

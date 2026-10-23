@@ -12,7 +12,7 @@
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "npm run build && npm run prepare:pilot && node scripts/prepare-authoring-release.mjs && node --test test/*.test.mjs",
     "test:db": "bash scripts/test-postgres.sh",
-    "lint": "tsc -p tsconfig.json --noEmit --noUnusedLocals --noUnusedParameters --noImplicitReturns && node --check test/domain.test.mjs && node --check test/lifecycle.test.mjs && node --check test/host-operations.test.mjs && node --check test/pilot-extension.test.mjs && node --check scripts/prepare-pilot-release.mjs && node --check src/acceptance/live-host.mjs && node --check scripts/verify-live-host.mjs && node --check test/live-host-acceptance.test.mjs && node --check scripts/prepare-authoring-release.mjs && node --check test/course-admin.test.mjs",
+    "lint": "tsc -p tsconfig.json --noEmit --noUnusedLocals --noUnusedParameters --noImplicitReturns && node --check test/domain.test.mjs && node --check test/lifecycle.test.mjs && node --check test/host-operations.test.mjs && node --check test/pilot-extension.test.mjs && node --check scripts/prepare-pilot-release.mjs && node --check src/acceptance/live-host.mjs && node --check scripts/verify-live-host.mjs && node --check test/live-host-acceptance.test.mjs && node --check scripts/prepare-authoring-release.mjs && node --check test/course-admin.test.mjs && node --check test/course-catalog-delivery.test.mjs",
     "prepare:pilot": "node scripts/prepare-pilot-release.mjs",
     "release:pilot": "npm run build && npm run prepare:pilot",
     "verify:local": "npm run lint && npm run typecheck && npm test",

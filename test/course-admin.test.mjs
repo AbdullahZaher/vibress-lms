@@ -60,16 +60,24 @@ const post = (scope, operation, courseId=COURSE, expectedVersion=0, input=fields
   route('POST').handle({ query:{},
     body:{ operation, courseId, expectedVersion, ...input } },scope);
 
-test('authoring keeps pilot identity and Member/public routes unchanged', () => {
-  assert.equal(extension.routes.length,2);
-  for(const r of extension.routes) {
-    assert.equal(r.audience,'admin');
-    assert.equal(r.permission,'plugins.manage');
+test('authoring & delivery exposes declared admin, public, and member routes', () => {
+  assert.equal(extension.routes.length, 8);
+  const adminRoutes = extension.routes.filter(r => r.audience === 'admin');
+  assert.equal(adminRoutes.length, 2);
+  for(const r of adminRoutes) {
+    assert.equal(r.permission, 'plugins.manage');
   }
-  assert.deepEqual(extension.adminNavigation[0].label,{en:'Courses',ar:'الدورات'});
-  assert.deepEqual(extension.adminViews[0].title,{en:'Course Authoring',ar:'إدارة الدورات'});
+  const publicRoutes = extension.routes.filter(r => r.audience === 'public');
+  assert.equal(publicRoutes.length, 2);
+  const memberRoutes = extension.routes.filter(r => r.audience === 'member');
+  assert.equal(memberRoutes.length, 4);
+
+  assert.deepEqual(extension.adminNavigation[0].label, { en: 'Courses', ar: 'الدورات' });
+  assert.deepEqual(extension.adminViews[0].title, { en: 'Course Authoring', ar: 'إدارة الدورات' });
+  assert.deepEqual(extension.publicViews[0].title, { en: 'Course Catalog', ar: 'دليل الدورات' });
+  assert.deepEqual(extension.publicViews[0].publishedLocales, ['en', 'ar']);
   assert.ok(route('POST').body.required.includes('lesson_body_ar'));
-  assert.equal(route('GET').query,undefined);
+  assert.equal(route('GET').query, undefined);
 });
 
 test('creates bilingual draft, saves revised text, publishes exact saved version and seals changes', async () => {
@@ -163,15 +171,19 @@ test('unsigned authoring candidate contains bounded and consistent operator arti
   assert.equal(item.sha256,sha(moduleBytes));
   assert.equal(item.adminUiAssets[0].viewId,'courses');
   assert.equal(item.adminUiAssets[0].sha256,sha(htmlBytes));
-  assert.equal(item.storageModels[0].key,'courses');
-  assert.equal(plan.migrationId,'0001_lms_authoring');
-  assert.equal(plan.artifactSha256,item.sha256);
-  assert.equal(plan.migrationSha256,sha(JSON.stringify(plan.models.map(m=>({
-    key:m.key,schemaSha256:m.schemaSha256,
+  assert.equal(item.storageModels.length, 3);
+  assert.equal(item.storageModels[0].key, 'courses');
+  assert.equal(item.storageModels[1].key, 'enrollments');
+  assert.equal(item.storageModels[2].key, 'completions');
+  assert.equal(plan.migrationId, '0001_lms_authoring');
+  assert.equal(plan.artifactSha256, item.sha256);
+  assert.equal(plan.migrationSha256, sha(JSON.stringify(plan.models.map(m => ({
+    key: m.key, schemaSha256: m.schemaSha256,
   })))));
-  for(const m of plan.models) assert.equal(m.schemaSha256,sha(JSON.stringify(m.columns)));
-  assert.deepEqual(item.manifest.capabilities,[
-    'extension.routes.admin','extension.storage.read','extension.storage.write','admin.navigation',
+  for(const m of plan.models) assert.equal(m.schemaSha256, sha(JSON.stringify(m.columns)));
+  assert.deepEqual(item.manifest.capabilities, [
+    'extension.routes.admin', 'extension.storage.read', 'extension.storage.write', 'admin.navigation',
+    'extension.routes.public', 'extension.routes.member', 'extension.member_storage.read', 'extension.member_storage.write',
   ]);
   assert.equal(htmlBytes.includes(Buffer.from('https://')),false);
 });
