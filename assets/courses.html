@@ -222,22 +222,31 @@ textarea { min-height: 4.5rem; resize: vertical; }
       const statusLabel = isPub ? (lang === 'ar' ? 'منشورة' : 'Published') : (lang === 'ar' ? 'مسودة' : 'Draft');
       const titleText = (lang === 'ar' ? (c.title_ar || c.title_en) : (c.title_en || c.title_ar)) || c.id;
       
-      tr.innerHTML = `
-        <td dir="ltr" style="font-weight:600;">${c.id}</td>
-        <td dir="auto">${titleText}</td>
-        <td><span class="badge ${isPub ? 'published' : 'draft'}">${statusLabel}</span></td>
-        <td>v${c.version}</td>
-        <td><button type="button" data-edit-id="${c.id}" class="edit-btn">${lang === 'ar' ? 'تعديل' : 'Edit'}</button></td>
-      `;
+      // Course titles are persisted content. Never interpolate them into
+      // executable HTML or attributes, even in the sandboxed Admin UI.
+      const idCell = document.createElement('td');
+      idCell.dir = 'ltr';
+      idCell.style.fontWeight = '600';
+      idCell.textContent = c.id;
+      const titleCell = document.createElement('td');
+      titleCell.dir = 'auto';
+      titleCell.textContent = titleText;
+      const statusCell = document.createElement('td');
+      const statusBadge = document.createElement('span');
+      statusBadge.className = isPub ? 'badge published' : 'badge draft';
+      statusBadge.textContent = statusLabel;
+      statusCell.appendChild(statusBadge);
+      const versionCell = document.createElement('td');
+      versionCell.textContent = 'v' + c.version;
+      const actionsCell = document.createElement('td');
+      const editButton = document.createElement('button');
+      editButton.type = 'button';
+      editButton.className = 'edit-btn';
+      editButton.textContent = lang === 'ar' ? 'تعديل' : 'Edit';
+      editButton.addEventListener('click', () => selectCourse(c));
+      actionsCell.appendChild(editButton);
+      tr.append(idCell, titleCell, statusCell, versionCell, actionsCell);
       tbody.appendChild(tr);
-    });
-
-    tbody.querySelectorAll('[data-edit-id]').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const id = btn.getAttribute('data-edit-id');
-        const course = allCourses.find(c => c.id === id);
-        if (course) selectCourse(course);
-      });
     });
   }
 
