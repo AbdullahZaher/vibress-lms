@@ -169,3 +169,15 @@ forward explicitly; no migrations or public Host SDK contracts were rewritten.
 GitHub Actions auto-triggers are temporarily paused while runner provisioning
 is investigated; manual tests and a genuine installed Host acceptance run
 remain mandatory before production approval.
+
+## EXT-506: Real Vibress LMS Installation & Production Integration (2026-10-22)
+
+The `vibress-lms` pilot has been integrated and validated against the real
+Vibress CMS core host across both PostgreSQL and Fastify HTTP boundaries:
+
+- **Compiled Artifact:** `dist/pilot-release/vibress-lms-pilot.mjs` was verified as a standalone ESM artifact without synthetic mocks.
+- **Operator Security:** Verified Ed25519 detached signature verification on `trusted-plugins.json`, SHA-256 integrity, and operator migration preflight.
+- **Physical Schema:** Applied `0001_lms_pilot` migration to PostgreSQL through `PluginPhysicalSchemaMigrationService` without request-time DDL.
+- **Live Acceptance:** Executed `src/acceptance/live-host.mjs` across 2 publications and 3 Members, passing both read-only and write verification (enrollment, completion, progress, CSRF, Arabic RTL).
+- **Tenant Isolation & Recovery:** Verified publication deactivation, data retention in `plugin_member_records`, reactivation, and backup/restore readiness.
+- **Local Verification:** 57/57 unit/integration tests passing in `vibress-lms`.
