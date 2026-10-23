@@ -128,6 +128,27 @@ test("public catalog: projects published courses with deterministic ordering, hi
   assert.ok(!arRes.catalogJson.includes("محتوى محمي"));
 });
 
+test("public catalog stays valid JSON at the 4KB output limit", async () => {
+  const store = createStore();
+  const catalogRoute = findRoute("catalog", "public", "GET");
+  for (let index = 0; index < 20; index++) {
+    await store.create("courses", "course-" + String(index).padStart(2, "0"), {
+      ...sampleCourse, status: "published", summary_en: "x".repeat(900),
+    });
+  }
+  const response = await catalogRoute.handle(
+    { query: {}, body: {} },
+    { publicationId: "pub-1", principal: { kind: "anonymous" }, locale: "en", storage: store },
+  );
+  assert.equal(response.total, 20);
+  assert.ok(response.catalogJson.length <= 4000);
+  const cards = JSON.parse(response.catalogJson);
+  assert.ok(Array.isArray(cards));
+  assert.ok(cards.length > 0 && cards.length < response.total);
+  assert.deepEqual(cards.map((card) => card.id), cards.map((card) => card.id).sort());
+  assert.ok(!response.catalogJson.includes(sampleCourse.lesson_body_en));
+});
+
 test("public course detail: returns metadata for published course, not-found for draft", async () => {
   const store = createStore();
   const courseRoute = findRoute("course", "public", "GET");
