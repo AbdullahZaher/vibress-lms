@@ -171,7 +171,7 @@ test('unsigned authoring candidate contains bounded and consistent operator arti
   assert.equal(item.sha256,sha(moduleBytes));
   assert.equal(item.adminUiAssets[0].viewId,'courses');
   assert.equal(item.adminUiAssets[0].sha256,sha(htmlBytes));
-  const studentBytes = await readFile(join(root,'dist/authoring-release/student.html'));
+  const studentBytes = await readFile(new URL('student.html',root));
   assert.equal(item.adminUiAssets[1].viewId,'student');
   assert.equal(item.adminUiAssets[1].sha256,sha(studentBytes));
   assert.equal(item.storageModels.length, 3);
