@@ -272,6 +272,12 @@ const route: Route[] = [
         description: String(lang === "ar" ? item.fields.summary_ar : item.fields.summary_en),
         lessonTitle: String(lang === "ar" ? item.fields.lesson_title_ar : item.fields.lesson_title_en),
       }));
+      const boundedCatalog: typeof summaryList = [];
+      for (const course of summaryList) {
+        const candidate = [...boundedCatalog, course];
+        if (JSON.stringify(candidate).length > 4000) break;
+        boundedCatalog.push(course);
+      }
       return {
         outcome: "published",
         total: published.length,
@@ -280,7 +286,7 @@ const route: Route[] = [
         title: String(lang === "ar" ? first.fields.title_ar : first.fields.title_en),
         description: String(lang === "ar" ? first.fields.summary_ar : first.fields.summary_en),
         lessonTitle: String(lang === "ar" ? first.fields.lesson_title_ar : first.fields.lesson_title_en),
-        catalogJson: JSON.stringify(summaryList).slice(0, 4000),
+        catalogJson: JSON.stringify(boundedCatalog),
       };
     },
   },
