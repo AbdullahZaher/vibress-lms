@@ -295,6 +295,7 @@ const route: Route[] = [
     query: { fields: { courseId: "string", locale: "string" }, required: ["courseId", "locale"] },
     response: { fields: {
       outcome: "string", courseId: "string", locale: "string",
+      publicationId: "string",
       title: "string", description: "string", lessonTitle: "string",
     }, required: ["outcome", "courseId", "locale", "title", "description", "lessonTitle"] },
     async handle({ query }, scope) {
@@ -312,6 +313,7 @@ const route: Route[] = [
         outcome: "published",
         courseId: item.id,
         locale: lang,
+        publicationId: scope.publicationId,
         title: String(lang === "ar" ? item.fields.title_ar : item.fields.title_en),
         description: String(lang === "ar" ? item.fields.summary_ar : item.fields.summary_en),
         lessonTitle: String(lang === "ar" ? item.fields.lesson_title_ar : item.fields.lesson_title_en),
