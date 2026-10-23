@@ -126,6 +126,13 @@ test("public catalog: projects published courses with deterministic ordering, hi
   assert.equal(arRes.description, sampleCourse.summary_ar);
   assert.equal(arRes.lessonTitle, sampleCourse.lesson_title_ar);
   assert.ok(!arRes.catalogJson.includes("محتوى محمي"));
+
+  const arabicRegion = await catalogRoute.handle(
+    { query: {}, body: {} },
+    { publicationId: "pub-1", principal: { kind: "anonymous" }, locale: "ar-SA", storage: store }
+  );
+  assert.equal(arabicRegion.locale, "ar");
+  assert.equal(arabicRegion.title, sampleCourse.title_ar);
 });
 
 test("public catalog stays valid JSON at the 4KB output limit", async () => {
