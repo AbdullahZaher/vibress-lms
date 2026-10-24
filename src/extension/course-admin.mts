@@ -138,56 +138,66 @@ function validCompletion(record: RecordItem | null, id: string): boolean {
 const route: Route[] = [
   {
     id: "courses", audience: "admin", method: "GET", permission: "plugins.manage",
+    // Optional read-only selectors are validated by the Host and the
+    // opaque Admin bridge. Authority never comes from the iframe.
+    query: { fields: { cursor: "string", courseId: "string" } },
     response: { fields: {
       outcome: "string", courseId: "string", status: "string", version: "number",
       title_en: "string", title_ar: "string", summary_en: "string", summary_ar: "string",
       lesson_title_en: "string", lesson_title_ar: "string",
       lesson_body_en: "string", lesson_body_ar: "string",
-      total: "number", coursesJson: "string",
+      total: "number", coursesJson: "string", nextCursor: "string",
     }, required: [
       "outcome", "courseId", "status", "version",
       ...fieldNames, "total", "coursesJson",
     ] },
-    async handle(_input, scope) {
+    async handle({ query }, scope) {
       const storage = staffStorage(scope);
-      if (!storage) {
+      const empty = (kind: string) => ({
+        ...outcome(kind),
+        ...Object.fromEntries(fieldNames.map((name) => [name, ""])),
+        total: 0, coursesJson: "[]",
+      });
+      if (!storage) return empty("unavailable");
+
+      if (query.courseId !== undefined) {
+        const id = parseCourseId(query.courseId);
+        if (!id) return empty("not-found");
+        const item = await storage.get(MODEL_COURSES, id);
+        if (!item || !validStored(item, id)) return empty("not-found");
         return {
-          ...outcome("unavailable"),
-          ...Object.fromEntries(fieldNames.map((name) => [name, ""])),
-          total: 0,
-          coursesJson: "[]",
+          ...outcome("available", item.id, item.version, String(item.fields.status)),
+          ...Object.fromEntries(fieldNames.map((name) => [name, item.fields[name]])),
+          total: 1, coursesJson: "[]",
         };
       }
-      const { items } = await storage.list(MODEL_COURSES, 50);
-      const validItems = items.filter((item) => validStored(item, item.id));
-      const first = validItems[0];
-      if (!first) {
-        return {
-          ...outcome("empty"),
-          ...Object.fromEntries(fieldNames.map((name) => [name, ""])),
-          total: 0,
-          coursesJson: "[]",
-        };
-      }
-      const summaryList = validItems.map((item) => ({
-        id: item.id,
-        status: String(item.fields.status),
-        version: item.version,
-        title_en: String(item.fields.title_en || ""),
-        title_ar: String(item.fields.title_ar || ""),
-        summary_en: String(item.fields.summary_en || ""),
-        summary_ar: String(item.fields.summary_ar || ""),
-        lesson_title_en: String(item.fields.lesson_title_en || ""),
-        lesson_title_ar: String(item.fields.lesson_title_ar || ""),
-        lesson_body_en: String(item.fields.lesson_body_en || ""),
-        lesson_body_ar: String(item.fields.lesson_body_ar || ""),
+
+      const cursor = query.cursor === undefined ? undefined : parseCourseId(query.cursor);
+      if (query.cursor !== undefined && !cursor) return empty("not-found");
+      // List ONLY display metadata; lesson bodies are fetched for one course
+      // on explicit selection. Never slice JSON after serialization.
+      const page = await storage.list(MODEL_COURSES, 8, cursor ?? undefined);
+      const items = page.items.filter((item) => validStored(item, item.id));
+      const first = items[0];
+      if (!first) return empty("empty");
+      const summaries = items.map((item) => ({
+        id: item.id, status: String(item.fields.status), version: item.version,
+        title_en: String(item.fields.title_en), title_ar: String(item.fields.title_ar),
       }));
-      const values = Object.fromEntries(fieldNames.map((name) => [name, first.fields[name]]));
+      const bounded: typeof summaries = [];
+      for (const item of summaries) {
+        if (JSON.stringify([...bounded, item]).length > 4000) break;
+        bounded.push(item);
+      }
+      if (!bounded.length) return empty("unavailable");
+      const last = bounded[bounded.length - 1];
+      const more = bounded.length < summaries.length || Boolean(page.nextCursor);
       return {
         ...outcome("available", first.id, first.version, String(first.fields.status)),
-        ...values,
-        total: validItems.length,
-        coursesJson: JSON.stringify(summaryList).slice(0, 4000),
+        ...Object.fromEntries(fieldNames.map((name) => [name, first.fields[name]])),
+        total: bounded.length,
+        coursesJson: JSON.stringify(bounded),
+        ...(more ? { nextCursor: last.id } : {}),
       };
     },
   },
