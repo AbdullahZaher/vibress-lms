@@ -69,7 +69,8 @@ textarea { min-height: 4.5rem; resize: vertical; }
 <!-- View 1: Courses Listing -->
 <section id="list-view">
   <div class="toolbar">
-    <input type="search" id="search-input" class="search-box" placeholder="Search courses…" data-en-placeholder="Search courses…" data-ar-placeholder="ابحث في الدورات…">
+    <label for="search-input" data-en="Filter loaded courses" data-ar="تصفية الدورات المحمّلة">Filter loaded courses</label>
+    <input type="search" id="search-input" class="search-box" placeholder="Search loaded courses…" data-en-placeholder="Search loaded courses…" data-ar-placeholder="ابحث في الدورات المحمّلة…">
     <div class="filter-group">
       <select id="status-filter">
         <option value="all" data-en="All statuses" data-ar="جميع الحالات">All statuses</option>
@@ -78,6 +79,8 @@ textarea { min-height: 4.5rem; resize: vertical; }
       </select>
     </div>
   </div>
+
+  <p id="list-scope" class="note" role="status" aria-live="polite"></p>
 
   <div id="table-container">
     <table class="courses-table" id="courses-table" aria-label="Courses">
@@ -202,6 +205,11 @@ textarea { min-height: 4.5rem; resize: vertical; }
     const q = (el('search-input').value || '').trim().toLowerCase();
     const filter = el('status-filter').value;
 
+    el('list-scope').textContent = lang === 'ar'
+      ? ('تُعرض ' + allCourses.length + ' دورة محمّلة' +
+          (nextCursor ? ' — توجد صفحات أخرى؛ التصفية تقتصر على المحمّل' : ' — جميع الصفحات محمّلة'))
+      : ('Showing ' + allCourses.length + ' loaded courses' +
+          (nextCursor ? ' — more pages available; filters apply to loaded courses only' : ' — all pages loaded'));
     const filtered = allCourses.filter(c => {
       if (filter !== 'all' && c.status !== filter) return false;
       if (!q) return true;
