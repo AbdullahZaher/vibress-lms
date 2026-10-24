@@ -94,6 +94,8 @@ textarea { min-height: 4.5rem; resize: vertical; }
         <!-- Rendered dynamically -->
       </tbody>
     </table>
+    <button type="button" id="load-more" hidden
+      data-en="Load more courses" data-ar="تحميل المزيد من الدورات">Load more courses</button>
     <div id="empty-state" class="empty-state" style="display: none;">
       <p style="font-weight: 600;" data-en="No courses found" data-ar="لا توجد دورات">No courses found</p>
       <p class="note" data-en="Click '+ Create Course' above to author your first course." data-ar="انقر على '+ دورة جديدة' بالأعلى للبدء بتأليف دورتك الأولى.">
@@ -164,7 +166,7 @@ textarea { min-height: 4.5rem; resize: vertical; }
 (function () {
   'use strict';
   let port = null, version = 0, current = '', state = '', busy = false, sequence = 0;
-  let allCourses = [];
+  let allCourses = [], nextCursor = '';
   const waiting = new Map();
   const keys = ['title_en','title_ar','summary_en','summary_ar',
     'lesson_title_en','lesson_title_ar','lesson_body_en','lesson_body_ar'];
@@ -243,21 +245,36 @@ textarea { min-height: 4.5rem; resize: vertical; }
       editButton.type = 'button';
       editButton.className = 'edit-btn';
       editButton.textContent = lang === 'ar' ? 'تعديل' : 'Edit';
-      editButton.addEventListener('click', () => selectCourse(c));
+      editButton.addEventListener('click', () => { void selectCourse(c); });
       actionsCell.appendChild(editButton);
       tr.append(idCell, titleCell, statusCell, versionCell, actionsCell);
       tbody.appendChild(tr);
     });
   }
 
-  function selectCourse(course) {
-    current = course.id;
-    version = course.version;
-    state = course.status;
-    el('courseId').value = course.id;
-    for (const key of keys) el(key).value = course[key] || '';
-    controls();
-    switchView('editor');
+  async function selectCourse(course) {
+    if (busy) return;
+    busy = true; controls();
+    try {
+      // Metadata in the list never contains a protected lesson body.
+      // Fetch one authorized course with optimistic version information.
+      const result = await request('vibress:extension:read', undefined, { courseId: course.id });
+      if (result.outcome !== 'available' || result.courseId !== course.id ||
+          !Number.isSafeInteger(result.version) || result.version < 1 ||
+          !keys.every(key => typeof result[key] === 'string')) {
+        throw new Error('course unavailable');
+      }
+      current = result.courseId;
+      version = result.version;
+      state = result.status;
+      el('courseId').value = current;
+      for (const key of keys) el(key).value = result[key];
+      switchView('editor');
+    } catch {
+      announce(messages[lang].failed);
+    } finally {
+      busy = false; controls();
+    }
   }
 
   function newCourseForm() {
@@ -279,38 +296,58 @@ textarea { min-height: 4.5rem; resize: vertical; }
     el('publish').disabled = !editable || version === 0;
   }
 
-  function request(type, body) {
+  function request(type, body, query) {
     if (!port) return Promise.reject(new Error('not connected'));
     const requestId = 'lms_' + (++sequence);
     return new Promise((resolve, reject) => {
       waiting.set(requestId, { resolve, reject });
-      port.postMessage({ type, version:1, requestId, ...(body ? { body } : {}) });
+      port.postMessage({
+        type, version:1, requestId,
+        ...(body ? { body } : {}),
+        ...(query ? { query } : {})
+      });
     });
   }
 
-  async function read() {
+  async function loadPage(cursor, append) {
+    if (!port) return;
     busy = true; controls();
+    const more = el('load-more');
+    more.disabled = true;
     try {
-      const result = await request('vibress:extension:read');
-      if (result.outcome === 'available' || result.total > 0) {
-        if (result.coursesJson) {
-          try { allCourses = JSON.parse(result.coursesJson); } catch { allCourses = []; }
-        }
-        if (allCourses.length === 0 && result.courseId) {
-          allCourses = [{
-            id: result.courseId, version: result.version, status: result.status,
-            ...Object.fromEntries(keys.map(k => [k, result[k] || '']))
-          }];
-        }
-        renderList();
-        announce(messages[lang].ready);
-      } else {
-        allCourses = [];
-        renderList();
-        announce(messages[lang].empty);
+      const result = await request('vibress:extension:read', undefined,
+        cursor ? { cursor } : undefined);
+      if (result.outcome !== 'available' && result.outcome !== 'empty') {
+        throw new Error('list unavailable');
       }
-    } catch { announce(messages[lang].failed); }
-    finally { busy = false; controls(); }
+      const parsed = JSON.parse(result.coursesJson || '[]');
+      if (!Array.isArray(parsed) || !parsed.every(item =>
+          item && typeof item.id === 'string' &&
+          typeof item.title_en === 'string' &&
+          typeof item.title_ar === 'string' &&
+          typeof item.status === 'string' &&
+          Number.isSafeInteger(item.version))) {
+        throw new Error('invalid list');
+      }
+      allCourses = append ? [...allCourses, ...parsed] : parsed;
+      nextCursor = typeof result.nextCursor === 'string' ? result.nextCursor : '';
+      // Reject a repeated cursor instead of looping on an inconsistent Host.
+      if (cursor && nextCursor === cursor) nextCursor = '';
+      more.hidden = !nextCursor;
+      renderList();
+      announce(allCourses.length ? messages[lang].ready : messages[lang].empty);
+    } catch {
+      announce(messages[lang].failed);
+    } finally {
+      busy = false;
+      more.disabled = false;
+      controls();
+    }
+  }
+
+  async function read() {
+    nextCursor = '';
+    await loadPage(undefined, false);
   }
 
   async function write(operation) {
@@ -340,6 +377,9 @@ textarea { min-height: 4.5rem; resize: vertical; }
   el('btn-back').addEventListener('click', () => { switchView('list'); });
   el('search-input').addEventListener('input', renderList);
   el('status-filter').addEventListener('change', renderList);
+  el('load-more').addEventListener('click', () => {
+    if (!busy && nextCursor) void loadPage(nextCursor, true);
+  });
 
   function applyLocale(newLang) {
     lang = newLang;
