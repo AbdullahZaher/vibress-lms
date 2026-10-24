@@ -18,10 +18,14 @@ function store() {
   } : null;
   return {
     async get(model,id) { assert.equal(model,'courses'); return clone(records.get(id)); },
-    async list(model,limit=20) {
+    async list(model,limit=20,cursor) {
       assert.equal(model,'courses');
-      return { items: [...records.values()].sort((a,b) => a.id.localeCompare(b.id))
-        .slice(0,limit).map(clone) };
+      const items=[...records.values()].sort((a,b) => a.id.localeCompare(b.id))
+        .filter(record => cursor === undefined || record.id > cursor);
+      const page=items.slice(0,limit).map(clone);
+      return items.length > limit
+        ? { items:page, nextCursor:page[page.length-1].id }
+        : { items:page };
     },
     async create(model,id,data) {
       assert.equal(model,'courses');
@@ -55,7 +59,7 @@ function route(method) {
   assert.ok(target);
   return target;
 }
-const get = (scope) => route('GET').handle({ query:{}, body:{} },scope);
+const get = (scope,query={}) => route('GET').handle({ query, body:{} },scope);
 const post = (scope, operation, courseId=COURSE, expectedVersion=0, input=fields) =>
   route('POST').handle({ query:{},
     body:{ operation, courseId, expectedVersion, ...input } },scope);
@@ -77,7 +81,7 @@ test('authoring & delivery exposes declared admin, public, and member routes', (
   assert.deepEqual(extension.publicViews[0].title, { en: 'Course Catalog', ar: 'دليل الدورات' });
   assert.deepEqual(extension.publicViews[0].publishedLocales, ['en', 'ar']);
   assert.ok(route('POST').body.required.includes('lesson_body_ar'));
-  assert.equal(route('GET').query, undefined);
+  assert.equal(route('GET').query.fields.courseId, 'string');
 });
 
 test('creates bilingual draft, saves revised text, publishes exact saved version and seals changes', async () => {
@@ -102,6 +106,36 @@ test('creates bilingual draft, saves revised text, publishes exact saved version
   assert.equal((await post(scope,'save',COURSE,3,edit)).outcome,'immutable');
   assert.equal((await post(scope,'publish',COURSE,3,edit)).outcome,'immutable');
   assert.equal(storage.count(),1);
+});
+
+test('Admin paginates valid compact metadata and selects complete lesson content', async () => {
+  const storage=store(), scope=host('publication-a',storage);
+  for(let i=0;i<22;i++) {
+    await storage.create('courses','course-'+String(i).padStart(2,'0'), {
+      ...fields, status:'draft',
+      lesson_body_en:'x'.repeat(4096), lesson_body_ar:'ع'.repeat(4096),
+    });
+  }
+  const collected=[];
+  let cursor;
+  for(let i=0;i<10;i++) {
+    const response=await get(scope,cursor ? {cursor} : {});
+    assert.equal(response.outcome,'available');
+    assert.ok(response.coursesJson.length <= 4000);
+    const page=JSON.parse(response.coursesJson);
+    assert.ok(page.length > 0);
+    assert.ok(page.every(item => item.lesson_body_en === undefined));
+    collected.push(...page.map(item => item.id));
+    cursor=response.nextCursor;
+    if(!cursor)break;
+  }
+  assert.equal(collected.length,22);
+  assert.equal(new Set(collected).size,22);
+  const target=await get(scope,{courseId:'course-21'});
+  assert.equal(target.courseId,'course-21');
+  assert.equal(target.lesson_body_ar,'ع'.repeat(4096));
+  assert.equal(target.coursesJson,'[]');
+  assert.equal((await get(scope,{courseId:'other-publication'})).outcome,'not-found');
 });
 
 test('no partial, empty or untranslated courses can be published', async () => {
