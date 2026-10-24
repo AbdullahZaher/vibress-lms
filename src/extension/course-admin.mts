@@ -257,8 +257,32 @@ const route: Route[] = [
       if (!storage) {
         return { outcome: "unavailable", total: 0, courseId: "", locale: lang, title: "", description: "", lessonTitle: "", catalogJson: "[]" };
       }
-      const { items } = await storage.list(MODEL_COURSES, 20);
-      const published = items.filter((item) => item.fields.status === "published" && validStored(item, item.id));
+      // Storage lists by record ID, not publication state. Filtering only the
+      // first page can falsely report an empty catalog when drafts sort first.
+      // Bound the scan to protect the public route from unbounded DB work;
+      // report unavailable (not empty) if the dataset exceeds that budget.
+      const published: RecordItem[] = [];
+      let cursor: string | undefined;
+      let exhausted = false;
+      for (let pageNumber = 0; pageNumber < 64; pageNumber++) {
+        const page = await storage.list(MODEL_COURSES, 50, cursor);
+        for (const item of page.items) {
+          if (item.fields.status === "published" && validStored(item, item.id)) {
+            published.push(item);
+          }
+        }
+        if (!page.nextCursor) {
+          exhausted = true;
+          break;
+        }
+        if (page.nextCursor === cursor || page.items.length === 0) {
+          break;
+        }
+        cursor = page.nextCursor;
+      }
+      if (!exhausted) {
+        return { outcome: "unavailable", total: 0, courseId: "", locale: lang, title: "", description: "", lessonTitle: "", catalogJson: "[]" };
+      }
       if (published.length === 0) {
         return { outcome: "empty", total: 0, courseId: "", locale: lang, title: "", description: "", lessonTitle: "", catalogJson: "[]" };
       }
