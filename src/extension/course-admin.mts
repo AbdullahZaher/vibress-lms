@@ -7,6 +7,11 @@ interface Storage {
   list(model: string, limit?: number, cursor?: string): Promise<{
     readonly items: readonly RecordItem[]; readonly nextCursor?: string;
   }>;
+  /** New Host path filters in PostgreSQL. Legacy Hosts keep bounded fallback. */
+  listByText?(model: string, field: string, value: string,
+    limit?: number, cursor?: string): Promise<{
+    readonly items: readonly RecordItem[]; readonly nextCursor?: string;
+  }>;
   create(model: string, id: string, fields: Fields): Promise<RecordItem>;
   update(model: string, id: string, expectedVersion: number, fields: Fields): Promise<RecordItem>;
 }
@@ -276,7 +281,11 @@ const route: Route[] = [
       let cursor: string | undefined;
       let exhausted = false;
       for (let pageNumber = 0; pageNumber < 64; pageNumber++) {
-        const page = await storage.list(MODEL_COURSES, 50, cursor);
+        // On supported Core runtimes only published rows are paginated by
+        // PostgreSQL. Older installed hosts use the bounded compatible scan.
+        const page = storage.listByText
+          ? await storage.listByText(MODEL_COURSES, "status", "published", 50, cursor)
+          : await storage.list(MODEL_COURSES, 50, cursor);
         for (const item of page.items) {
           if (item.fields.status === "published" && validStored(item, item.id)) {
             published.push(item);
