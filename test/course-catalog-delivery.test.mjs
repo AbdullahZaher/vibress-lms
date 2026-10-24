@@ -13,14 +13,17 @@ function createStore() {
       const key = model + ":" + id;
       return clone(data.get(key));
     },
-    async list(model, limit = 20) {
+    async list(model, limit = 20, cursor) {
       const prefix = model + ":";
-      const items = [...data.entries()]
+      const matching = [...data.entries()]
         .filter(([k]) => k.startsWith(prefix))
         .map(([, v]) => clone(v))
         .sort((a, b) => a.id.localeCompare(b.id))
-        .slice(0, limit);
-      return { items };
+        .filter((item) => cursor === undefined || item.id > cursor);
+      const items = matching.slice(0, limit);
+      return matching.length > limit
+        ? { items, nextCursor: items[items.length - 1].id }
+        : { items };
     },
     async create(model, id, fields) {
       const key = model + ":" + id;
@@ -133,6 +136,27 @@ test("public catalog: projects published courses with deterministic ordering, hi
   );
   assert.equal(arabicRegion.locale, "ar");
   assert.equal(arabicRegion.title, sampleCourse.title_ar);
+});
+
+test("public catalog finds published content after draft-filled storage pages", async () => {
+  const store = createStore();
+  const catalog = findRoute("catalog", "public", "GET");
+  for (let i = 0; i < 75; i++) {
+    await store.create("courses", "a-draft-" + String(i).padStart(3, "0"), {
+      ...sampleCourse, status: "draft",
+    });
+  }
+  await store.create("courses", "z-published", {
+    ...sampleCourse, status: "published",
+  });
+  const response = await catalog.handle(
+    { query: {}, body: {} },
+    { publicationId: "pub-1", principal: { kind: "anonymous" }, locale: "en", storage: store },
+  );
+  assert.equal(response.outcome, "published");
+  assert.equal(response.courseId, "z-published");
+  assert.equal(response.total, 1);
+  assert.deepEqual(JSON.parse(response.catalogJson).map((item) => item.id), ["z-published"]);
 });
 
 test("public catalog stays valid JSON at the 4KB output limit", async () => {
