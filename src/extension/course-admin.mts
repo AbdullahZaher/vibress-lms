@@ -191,6 +191,7 @@ const route: Route[] = [
       }
       if (!bounded.length) return empty("unavailable");
       const last = bounded[bounded.length - 1];
+      if (!last) return empty("unavailable");
       const more = bounded.length < summaries.length || Boolean(page.nextCursor);
       return {
         ...outcome("available", first.id, first.version, String(first.fields.status)),
