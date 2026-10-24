@@ -25,6 +25,21 @@ function createStore() {
         ? { items, nextCursor: items[items.length - 1].id }
         : { items };
     },
+    async listByText(model, field, value, limit = 20, cursor) {
+      assert.equal(field, "status");
+      assert.equal(value, "published");
+      const prefix = model + ":";
+      const items = [...data.entries()]
+        .filter(([key]) => key.startsWith(prefix))
+        .map(([, record]) => clone(record))
+        .filter((record) => record.fields[field] === value &&
+          (cursor === undefined || record.id > cursor))
+        .sort((a, b) => a.id.localeCompare(b.id));
+      const page = items.slice(0, limit);
+      return items.length > limit
+        ? { items: page, nextCursor: page[page.length - 1].id }
+        : { items: page };
+    },
     async create(model, id, fields) {
       const key = model + ":" + id;
       if (data.has(key)) {
@@ -157,6 +172,40 @@ test("public catalog finds published content after draft-filled storage pages", 
   assert.equal(response.courseId, "z-published");
   assert.equal(response.total, 1);
   assert.deepEqual(JSON.parse(response.catalogJson).map((item) => item.id), ["z-published"]);
+});
+
+test("filtered Host listing avoids draft-heavy scans and preserves legacy fallback", async () => {
+  const store = createStore();
+  const catalog = findRoute("catalog", "public", "GET");
+  for (let i = 0; i < 125; i++) {
+    await store.create("courses", "a-draft-" + String(i).padStart(3, "0"), {
+      ...sampleCourse, status: "draft",
+    });
+  }
+  await store.create("courses", "z-published", {
+    ...sampleCourse, status: "published",
+  });
+  let filteredCalls = 0;
+  const read = store.listByText.bind(store);
+  const filtered = {
+    ...store,
+    async listByText(...args) { filteredCalls++; return read(...args); },
+    async list() { throw new Error("Unfiltered draft scan is forbidden on supported hosts"); },
+  };
+  const scope = { publicationId: "pub-1",
+    principal: { kind: "anonymous" }, locale: "en" };
+  const result = await catalog.handle(
+    { query: {}, body: {} }, { ...scope, storage: filtered },
+  );
+  assert.equal(result.outcome, "published");
+  assert.equal(result.total, 1);
+  assert.equal(filteredCalls, 1);
+  const legacy = { ...store, listByText: undefined };
+  const compatible = await catalog.handle(
+    { query: {}, body: {} }, { ...scope, storage: legacy },
+  );
+  assert.equal(compatible.outcome, "published");
+  assert.equal(compatible.courseId, "z-published");
 });
 
 test("public catalog stays valid JSON at the 4KB output limit", async () => {
