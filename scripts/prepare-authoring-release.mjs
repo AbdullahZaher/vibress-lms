@@ -75,6 +75,8 @@ const lockfile = {
   schemaVersion: 1,
   plugins: [{
     manifest, sha256: artifactSha256, storageModels: models,
+    // Operator signs the only storage model readable by public/member routes.
+    publicReadModels: ["courses"], memberReadModels: ["courses"],
     adminUiAssets: [{
       viewId: "courses", path: "courses.html", sha256: sha256(document),
     }, {
