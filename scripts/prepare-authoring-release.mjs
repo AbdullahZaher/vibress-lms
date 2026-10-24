@@ -56,7 +56,7 @@ const completionsColumns = [
   { name: "completed_at", type: "timestamptz", required: true },
 ];
 const models = [
-  { key: "courses", columns: coursesColumns, schemaSha256: sha256(JSON.stringify(coursesColumns)) },
+  { key: "courses", columns: coursesColumns, schemaSha256: sha256(JSON.stringify(coursesColumns)), indexedTextFields: ["status"] },
   { key: "enrollments", columns: enrollmentsColumns, schemaSha256: sha256(JSON.stringify(enrollmentsColumns)) },
   { key: "completions", columns: completionsColumns, schemaSha256: sha256(JSON.stringify(completionsColumns)) },
 ];
