@@ -196,7 +196,7 @@ textarea { min-height: 4.5rem; resize: vertical; }
 
   function renderList() {
     const tbody = el('courses-tbody');
-    tbody.innerHTML = '';
+    tbody.replaceChildren();
     const q = (el('search-input').value || '').trim().toLowerCase();
     const filter = el('status-filter').value;
 
@@ -222,13 +222,30 @@ textarea { min-height: 4.5rem; resize: vertical; }
       const statusLabel = isPub ? (lang === 'ar' ? 'منشورة' : 'Published') : (lang === 'ar' ? 'مسودة' : 'Draft');
       const titleText = (lang === 'ar' ? (c.title_ar || c.title_en) : (c.title_en || c.title_ar)) || c.id;
       
-      tr.innerHTML = `
-        <td dir="ltr" style="font-weight:600;">${c.id}</td>
-        <td dir="auto">${titleText}</td>
-        <td><span class="badge ${isPub ? 'published' : 'draft'}">${statusLabel}</span></td>
-        <td>v${c.version}</td>
-        <td><button type="button" data-edit-id="${c.id}" class="edit-btn">${lang === 'ar' ? 'تعديل' : 'Edit'}</button></td>
-      `;
+      // Persisted course metadata is untrusted. Build nodes rather than
+      // interpolating titles/IDs into HTML or event-handler attributes.
+      const idCell = document.createElement('td');
+      idCell.dir = 'ltr';
+      idCell.style.fontWeight = '600';
+      idCell.textContent = c.id;
+      const titleCell = document.createElement('td');
+      titleCell.dir = 'auto';
+      titleCell.textContent = titleText;
+      const statusCell = document.createElement('td');
+      const badge = document.createElement('span');
+      badge.className = 'badge ' + (isPub ? 'published' : 'draft');
+      badge.textContent = statusLabel;
+      statusCell.appendChild(badge);
+      const versionCell = document.createElement('td');
+      versionCell.textContent = 'v' + String(c.version);
+      const actionCell = document.createElement('td');
+      const actionButton = document.createElement('button');
+      actionButton.type = 'button';
+      actionButton.dataset.editId = c.id;
+      actionButton.className = 'edit-btn';
+      actionButton.textContent = lang === 'ar' ? 'تعديل' : 'Edit';
+      actionCell.appendChild(actionButton);
+      tr.append(idCell, titleCell, statusCell, versionCell, actionCell);
       tbody.appendChild(tr);
     });
 

@@ -187,3 +187,12 @@ test('unsigned authoring candidate contains bounded and consistent operator arti
   ]);
   assert.equal(htmlBytes.includes(Buffer.from('https://')),false);
 });
+
+test('Staff course table never interpolates persisted data into HTML markup', async () => {
+  const html = await readFile(new URL('../assets/courses.html', import.meta.url), 'utf8');
+  // Regression guard for the previous XSS-prone tr.innerHTML interpolation.
+  assert.doesNotMatch(html, /(?:tbody|tr)\.innerHTML\s*=/);
+  assert.match(html, /titleCell\.textContent\s*=\s*titleText/);
+  assert.match(html, /idCell\.textContent\s*=\s*c\.id/);
+  assert.match(html, /actionButton\.dataset\.editId\s*=\s*c\.id/);
+});
