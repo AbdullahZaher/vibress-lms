@@ -440,8 +440,36 @@ export default {
   routes: route,
   publicViews: [{ id: "catalog", routeId: "catalog",
     title: { en: "Course Catalog", ar: "دليل الدورات" }, publishedLocales: ["en", "ar"] }],
-  adminViews: [{ id: "courses", routeId: "courses",
-    title: { en: "Course Authoring", ar: "إدارة الدورات" } }],
-  adminNavigation: [{ viewId: "courses", permission: "plugins.manage",
-    label: { en: "Courses", ar: "الدورات" } }],
+  adminViews: [
+    { id: "courses", routeId: "courses",
+      title: { en: "Course Authoring", ar: "إدارة الدورات" } },
+    // Read-only Host-native companion. Never replaces authoring/publishing.
+    { id: "course-overview", routeId: "courses",
+      title: { en: "Course Overview", ar: "نظرة عامة على الدورات" } },
+  ],
+  adminNavigation: [
+    { viewId: "courses", permission: "plugins.manage",
+      label: { en: "Courses", ar: "الدورات" } },
+    { viewId: "course-overview", permission: "plugins.manage",
+      label: { en: "Overview", ar: "نظرة عامة" } },
+  ],
+  // NUI-05 pilot: typed read-only metadata, disabled on non-allowlisted Hosts.
+  // The old iframe remains the ONLY accepted editing/publishing UI.
+  adminPages: [{
+    schemaVersion: 1, viewId: "course-overview",
+    title: { en: "Course Overview", ar: "نظرة عامة على الدورات" },
+    description: { en: "Read-only course inventory; edit courses in Authoring.",
+      ar: "قائمة الدورات للعرض فقط؛ استخدم إدارة الدورات للتحرير." },
+    components: [{
+      type: "stat", id: "legacy-sample", field: "total",
+      label: { en: "Legacy sample (up to 50 courses)", ar: "عينة قديمة (حتى ٥٠ دورة)" },
+    }],
+  }],
+  adminResources: [{
+    id: "course-records", viewId: "course-overview", modelKey: "courses",
+    fields: ["title_en", "title_ar", "status"],
+  }],
+  // No adminActions: generic Host storage writes would bypass draft/publish
+  // validation and the immutability invariants of published LMS courses.
+
 };
