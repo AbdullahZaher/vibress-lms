@@ -122,3 +122,7 @@ for enrollment/progress mutations. See [EXT-502 acceptance runbook](docs/HOST_AC
 Neither local HTTP mocks nor the release fixture prove real Host installation.
 Automatic GitHub Actions triggers are temporarily paused on `main`; the full
 suite remains available via manual `workflow_dispatch` and must pass before release.
+
+## Experimental Native course overview (NUI-05)
+
+A separate, **read-only** Host-native course overview has been added on the Native UI pilot branch. It does not replace the legacy course-authoring iframe and does not enable generic storage mutations for LMS. See [Native overview pilot and release gates](docs/NATIVE_ADMIN_UI_PILOT.md) for operator and security requirements. No signed or deployed artifact is implied.
