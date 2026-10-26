@@ -1,4 +1,4 @@
-# LMS NUI-05 — Read-Only Native Course Overview Pilot
+# LMS NUI-05 — Native Course Authoring Pilot (Experimental)
 
 **Status:** Source-only pilot on `docs/native-admin-ui-plan-20261025`. **Not released, deployed, signed, or production-approved.**
 
@@ -6,9 +6,9 @@
 
 The operator-trusted LMS authoring extension now declares a second, Host-owned `course-overview` Admin view. It reuses the current, permission-checked Admin `courses` GET route, renders a bounded scalar snapshot, and optionally uses NUI-03 typed Host storage resources for an actual paginated, read-only table. The original `courses` Admin view and opaque-origin iframe retain **all existing course editing and publishing operations**.
 
-The Native overview is deliberately read-only. **No `adminActions` declaration exists in this LMS artifact.** The generic NUI-03 storage create/update route must not edit or publish LMS courses: it does not enforce LMS-specific bilingual completeness, saved-version identity, draft-only modification, publication immutability, or other course lifecycle invariants.
+The source now declares an **optional paired native domain workflow** for create/save/publish, which is shown only for independently approved Native read and write releases. **No generic `adminActions` declaration exists in this artifact.** The generic NUI-03 storage create/update route still must not edit or publish LMS courses: it does not enforce LMS-specific bilingual completeness, saved-version identity, draft-only modification, publication immutability, or other course lifecycle invariants.
 
-This is a safe first migration of a **view**, not a claim of course-authoring feature parity, LMS-MVP completion, or general Native action framework certification.
+This is a source-level Native view plus domain-workflow pilot, not evidence of real database/browser course-authoring parity, LMS-MVP completion, or general Native action framework certification.
 
 ## Operator prerequisites
 
@@ -32,9 +32,9 @@ This is a safe first migration of a **view**, not a claim of course-authoring fe
 | Production and recovery | Real PostgreSQL, multi-replica API cursor behavior and recovery/rollback rehearsal observed |
 | Compliance | CI green, independent Security/API/Operator approval, no unsafe plugin-code injection into Admin origin |
 
-## Follow-up before full LMS Native authoring
+## Follow-up before production LMS Native authoring
 
-A versioned, domain-specific action API must delegate course create/save/publish to the LMS application service, preserving all rules enforced by the current `POST courses` handler. New forms and confirmation UX must then pass adversarial tests for IDOR, cross-publication access, stale versions, multiple locales, immutable published courses, invalid content, write revocation, retries, and duplicate requests. The generic Host storage CRUD action set cannot substitute for domain-specific authorization.
+The experimental bounded form now calls the existing LMS `POST courses` handler, preserving its application validation and storage CAS behavior; no generic CRUD publish shortcut is added. The remaining release gate is real, independent parity testing for IDOR, cross-publication access, stale revisions, multiple locales, immutable published courses, invalid content, write revocation, retries, duplicate requests, upgrade/rollback, and operator artifact signing. A source-level form is not proof that these scenarios passed.
 
 Do not remove the legacy UI asset, change durable course formats, update the operator allowlist, or advertise Native course authoring as complete under this pilot.
 

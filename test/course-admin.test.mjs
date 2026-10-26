@@ -78,7 +78,10 @@ test('authoring & delivery exposes declared admin, public, and member routes', (
   assert.equal(extension.adminNavigation[1].permission, 'plugins.manage');
   assert.equal(extension.adminPages[0].schemaVersion, 1);
   assert.equal(extension.adminPages[0].viewId, 'course-overview');
-  assert.deepEqual(extension.adminResources[0].fields, ['title_en', 'title_ar', 'status']);
+  assert.deepEqual(extension.adminResources[0].fields, [
+    'title_en', 'title_ar', 'status', 'summary_en', 'summary_ar',
+    'lesson_title_en', 'lesson_title_ar', 'lesson_body_en', 'lesson_body_ar',
+  ]);
   assert.equal(extension.adminResources[0].viewId, 'course-overview');
   // Critical: the generic storage-action gateway cannot publish or mutate LMS courses.
   assert.equal(extension.adminActions, undefined);
@@ -87,6 +90,7 @@ test('authoring & delivery exposes declared admin, public, and member routes', (
   assert.equal(workflow.schemaVersion, 1);
   assert.equal(workflow.viewId, 'course-overview');
   assert.equal(workflow.routeId, adminWriteRoute.id);
+  assert.equal(workflow.resourceId, extension.adminResources[0].id);
   assert.deepEqual(workflow.operations, ['create', 'save', 'publish']);
   assert.equal(adminWriteRoute.permission, 'plugins.manage');
   assert.deepEqual(workflow.fields.map(f => f.key),
