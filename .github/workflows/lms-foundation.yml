@@ -1,9 +1,13 @@
 name: LMS foundation checks
 
-# Temporary operator-requested CI pause (2026-10-22).
-# Full test and PostgreSQL jobs stay intact for manual workflow_dispatch.
-# Restore push/pull_request triggers before production release approval.
+# Restore automated validation for the active Native UI/LMS integration.
+# Preserve manual dispatch for independent production-acceptance reruns.
 on:
+  push:
+    branches:
+      - main
+      - docs/native-admin-ui-plan-20261025
+  pull_request:
   workflow_dispatch:
 
 permissions:
