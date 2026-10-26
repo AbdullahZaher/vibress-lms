@@ -75,6 +75,10 @@ const lockfile = {
   schemaVersion: 1,
   plugins: [{
     manifest, sha256: artifactSha256, storageModels: models,
+    // Public/Member routes only need publication-scoped course reads.
+    // Enrollment and completion use the separate Member-owned storage API.
+    publicReadModels: ["courses"],
+    memberReadModels: ["courses"],
     adminUiAssets: [{
       viewId: "courses", path: "courses.html", sha256: sha256(document),
     }],

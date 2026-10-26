@@ -204,6 +204,9 @@ test('unsigned authoring candidate contains bounded and consistent operator arti
   assert.equal(item.storageModels[0].key, 'courses');
   assert.equal(item.storageModels[1].key, 'enrollments');
   assert.equal(item.storageModels[2].key, 'completions');
+  // Public/Member generic storage must never expose enrollment or progress models.
+  assert.deepEqual(item.publicReadModels, ['courses']);
+  assert.deepEqual(item.memberReadModels, ['courses']);
   assert.equal(plan.migrationId, '0001_lms_authoring');
   assert.equal(plan.artifactSha256, item.sha256);
   assert.equal(plan.migrationSha256, sha(JSON.stringify(plan.models.map(m => ({
@@ -215,6 +218,38 @@ test('unsigned authoring candidate contains bounded and consistent operator arti
     'extension.routes.public', 'extension.routes.member', 'extension.member_storage.read', 'extension.member_storage.write',
   ]);
   assert.equal(htmlBytes.includes(Buffer.from('https://')),false);
+});
+
+test('legacy course summary JSON is always complete, including oversized bilingual lessons', async () => {
+  const storage = store(), scope = host('publication-a', storage);
+  const largeFields = { ...fields, lesson_body_en: 'A'.repeat(4096),
+    lesson_body_ar: 'ب'.repeat(4096) };
+  assert.equal((await post(scope, 'create', COURSE, 0, largeFields)).outcome, 'created');
+  const large = await get(scope);
+  assert.ok(large.coursesJson.length <= 4000);
+  assert.deepEqual(JSON.parse(large.coursesJson), []);
+  // Full scalar record remains available for the iframe fallback; no partial edit.
+  assert.equal(large.lesson_body_en, largeFields.lesson_body_en);
+  assert.equal(large.lesson_body_ar, largeFields.lesson_body_ar);
+  assert.equal(large.courseId, COURSE);
+
+  assert.equal((await post(scope, 'create', 'second-course', 0, fields)).outcome, 'created');
+  // The first large course must not produce malformed JSON or a truncated row.
+  assert.deepEqual(JSON.parse((await get(scope)).coursesJson), []);
+
+  const small = store(), smallScope = host('publication-b', small);
+  for (let i = 0; i < 8; i++) {
+    assert.equal((await post(smallScope, 'create', `course-${i}`, 0, {
+      ...fields, summary_en: String(i).repeat(650),
+    })).outcome, 'created');
+  }
+  const summary = await get(smallScope);
+  const rows = JSON.parse(summary.coursesJson);
+  assert.ok(rows.length > 0 && rows.length < summary.total);
+  for (const row of rows) {
+    assert.equal(row.summary_en.length, 650);
+    assert.equal(row.lesson_body_ar, fields.lesson_body_ar);
+  }
 });
 
 test('Staff course table never interpolates persisted data into HTML markup', async () => {

@@ -18,6 +18,16 @@ This is a source-level Native view plus domain-workflow pilot, not evidence of r
 4. Only after independent security/operations sign-off, consider enabling `VIBRESS_NATIVE_ADMIN_UI_RELEASES=manifestId@entrypointSha256` for that **exact approved artifact**. Keep `VIBRESS_NATIVE_ADMIN_ACTION_RELEASES` **unset**.
 5. Test current and previous Host versions, including a fresh installation and upgrade, before enabling the Native overview for any live publication. Do not copy a stale artifact digest from source control or a previous build.
 
+## Audience-scoped storage admission
+
+The authoring release fixture explicitly pins `publicReadModels` and
+`memberReadModels` to `["courses"]`. Only published records are projected
+by public routes, and authenticated Member access still checks the published
+course and enrollment state. Member-owned enrollment/completion records use
+the separate `memberStorage` API and must never enter generic Public/Member
+storage. Existing unsigned fixture artifacts must be regenerated and reviewed;
+this change does not install, sign, or authorize an updated release.
+
 ## Acceptance checklist
 
 | Requirement | Evidence required |

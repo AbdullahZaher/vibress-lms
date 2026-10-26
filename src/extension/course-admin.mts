@@ -182,11 +182,23 @@ const route: Route[] = [
         lesson_body_ar: String(item.fields.lesson_body_ar || ""),
       }));
       const values = Object.fromEntries(fieldNames.map((name) => [name, first.fields[name]]));
+      // Keep the legacy scalar response contract, but never cut a JSON object
+      // or an editable course field in half to meet the envelope limit.
+      // The iframe can fall back to the full first-record scalar fields when
+      // even a single complete list row exceeds this bound.
+      let coursesJson = "[";
+      for (const item of summaryList) {
+        const serialized = JSON.stringify(item);
+        const separator = coursesJson.length === 1 ? "" : ",";
+        if (coursesJson.length + separator.length + serialized.length + 1 > 4000) break;
+        coursesJson += separator + serialized;
+      }
+      coursesJson += "]";
       return {
         ...outcome("available", first.id, first.version, String(first.fields.status)),
         ...values,
         total: validItems.length,
-        coursesJson: JSON.stringify(summaryList).slice(0, 4000),
+        coursesJson,
       };
     },
   },
