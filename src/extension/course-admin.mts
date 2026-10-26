@@ -476,6 +476,7 @@ export default {
   // bilingual publish rules. It is independently operator allowlisted.
   adminDomainWorkflows: [{
     schemaVersion: 1, viewId: "course-overview", routeId: "courses",
+    resourceId: "course-records",
     idField: "courseId", versionField: "expectedVersion", operationField: "operation",
     operations: ["create", "save", "publish"],
     fields: [
