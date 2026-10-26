@@ -82,6 +82,22 @@ test('authoring & delivery exposes declared admin, public, and member routes', (
   assert.equal(extension.adminResources[0].viewId, 'course-overview');
   // Critical: the generic storage-action gateway cannot publish or mutate LMS courses.
   assert.equal(extension.adminActions, undefined);
+  const workflow = extension.adminDomainWorkflows[0];
+  const adminWriteRoute = route('POST');
+  assert.equal(workflow.schemaVersion, 1);
+  assert.equal(workflow.viewId, 'course-overview');
+  assert.equal(workflow.routeId, adminWriteRoute.id);
+  assert.deepEqual(workflow.operations, ['create', 'save', 'publish']);
+  assert.equal(adminWriteRoute.permission, 'plugins.manage');
+  assert.deepEqual(workflow.fields.map(f => f.key),
+    adminWriteRoute.body.required.filter(key =>
+      !['operation', 'courseId', 'expectedVersion'].includes(key)));
+  for (const field of workflow.fields) {
+    assert.equal(adminWriteRoute.body.fields[field.key], 'string');
+    assert.ok(field.label.en.length && field.label.ar.length);
+    assert.ok(field.maxLength <= 4096);
+  }
+
   assert.deepEqual(extension.adminViews[0].title, { en: 'Course Authoring', ar: 'إدارة الدورات' });
   assert.deepEqual(extension.publicViews[0].title, { en: 'Course Catalog', ar: 'دليل الدورات' });
   assert.deepEqual(extension.publicViews[0].publishedLocales, ['en', 'ar']);

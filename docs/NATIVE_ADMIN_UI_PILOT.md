@@ -37,3 +37,37 @@ This is a safe first migration of a **view**, not a claim of course-authoring fe
 A versioned, domain-specific action API must delegate course create/save/publish to the LMS application service, preserving all rules enforced by the current `POST courses` handler. New forms and confirmation UX must then pass adversarial tests for IDOR, cross-publication access, stale versions, multiple locales, immutable published courses, invalid content, write revocation, retries, and duplicate requests. The generic Host storage CRUD action set cannot substitute for domain-specific authorization.
 
 Do not remove the legacy UI asset, change durable course formats, update the operator allowlist, or advertise Native course authoring as complete under this pilot.
+
+## Native course authoring — experimental domain-workflow pilot
+
+The independent LMS package now declares `adminDomainWorkflows` for the
+`course-overview` page. The descriptor supplies bounded bilingual field labels
+and `create`, `save`, and `publish` operation values. It contains no URL,
+JavaScript callback, SQL, new route, or authorization grant.
+
+A compatible Host renders a native course editor only after independently
+approving the same immutable plugin digest in **both**
+`VIBRESS_NATIVE_ADMIN_UI_RELEASES` and
+`VIBRESS_NATIVE_ADMIN_ACTION_RELEASES`, verifying the publication-local
+`plugins.manage` permission, and binding a matching existing Admin GET/POST
+route to the view. No flags are enabled by this source change.
+
+Each native form submission uses the already permission-checked
+`POST /api/admin/v1/extensions/:pluginId/v1/courses` route. The plugin's
+existing course service enforces draft-only changes, exact saved revision
+checks, bilingual publish completeness and published-record immutability.
+The Host's generic NUI-03 storage mutation gateway is intentionally *not*
+exposed by the LMS package. This remains an unsigned, non-deployed
+review fixture; it is not production acceptance.
+
+The Native table reads up to five full bilingual course records per page
+from the pinned, publication-scoped Host model. It displays the three
+overview columns and uses the remaining projected fields in the editor.
+This interim pagination cap reduces response size; a dedicated
+field-projected detail endpoint can improve efficiency in a later version.
+
+Release gates still require a real PostgreSQL two-publication end-to-end
+integration, keyboard/Arabic RTL browser verification, operator-approved
+release build/signature, old-Host/upgrade tests, mixed-replica deployment,
+rollback, and independent Security/API/Operations acceptance. The original
+`courses` iframe is kept unchanged for operator-approved fallback.

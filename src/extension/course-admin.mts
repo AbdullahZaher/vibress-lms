@@ -467,7 +467,27 @@ export default {
   }],
   adminResources: [{
     id: "course-records", viewId: "course-overview", modelKey: "courses",
-    fields: ["title_en", "title_ar", "status"],
+    fields: ["title_en", "title_ar", "status",
+      "summary_en", "summary_ar", "lesson_title_en", "lesson_title_ar",
+      "lesson_body_en", "lesson_body_ar"],
+  }],
+  // NUI-05: the native editor delegates ALL writes to the existing courses
+  // POST handler, preserving draft-only edits, saved-version identity and
+  // bilingual publish rules. It is independently operator allowlisted.
+  adminDomainWorkflows: [{
+    schemaVersion: 1, viewId: "course-overview", routeId: "courses",
+    idField: "courseId", versionField: "expectedVersion", operationField: "operation",
+    operations: ["create", "save", "publish"],
+    fields: [
+      { key: "title_en", label: { en: "Title (English)", ar: "العنوان (الإنجليزية)" }, maxLength: 180 },
+      { key: "title_ar", label: { en: "Title (Arabic)", ar: "العنوان (العربية)" }, maxLength: 180 },
+      { key: "summary_en", label: { en: "Summary (English)", ar: "الملخص (الإنجليزية)" }, maxLength: 1000, multiline: true },
+      { key: "summary_ar", label: { en: "Summary (Arabic)", ar: "الملخص (العربية)" }, maxLength: 1000, multiline: true },
+      { key: "lesson_title_en", label: { en: "Lesson title (English)", ar: "عنوان الدرس (الإنجليزية)" }, maxLength: 180 },
+      { key: "lesson_title_ar", label: { en: "Lesson title (Arabic)", ar: "عنوان الدرس (العربية)" }, maxLength: 180 },
+      { key: "lesson_body_en", label: { en: "Lesson (English)", ar: "الدرس (الإنجليزية)" }, maxLength: 4096, multiline: true },
+      { key: "lesson_body_ar", label: { en: "Lesson (Arabic)", ar: "الدرس (العربية)" }, maxLength: 4096, multiline: true },
+    ],
   }],
   // No adminActions: generic Host storage writes would bypass draft/publish
   // validation and the immutability invariants of published LMS courses.
