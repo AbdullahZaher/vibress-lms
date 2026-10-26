@@ -204,6 +204,7 @@ test('unsigned authoring candidate contains bounded and consistent operator arti
   assert.equal(item.storageModels[0].key, 'courses');
   assert.equal(item.storageModels[1].key, 'enrollments');
   assert.equal(item.storageModels[2].key, 'completions');
+  assert.deepEqual(item.storageModels[0].indexedTextFields, ['status']);
   // Public/Member generic storage must never expose enrollment or progress models.
   assert.deepEqual(item.publicReadModels, ['courses']);
   assert.deepEqual(item.memberReadModels, ['courses']);
